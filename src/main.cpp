@@ -81,7 +81,7 @@ int main() {
     map_waypoints_dy.push_back(d_y);
   }
 
-  PathPlanner path_planner(0.02, mph_to_mps(49.5), 9.5, 49.5, 50,
+  PathPlanner path_planner(0.02, mph_to_mps(50.0), 10.0, 10.0, 50, 3,
                            map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy);
 
   h.onMessage([&path_planner, &map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](

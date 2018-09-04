@@ -8,6 +8,7 @@
 #include <vector>
 #include "Car.hpp"
 #include "CarState.hpp"
+#include "PID.h"
 
 class PathPlanner {
 
@@ -18,6 +19,7 @@ public:
               double max_acceleration_mps2,
               double max_jerk_mps3,
               size_t path_len,
+              size_t lane_num,
               std::vector<double> const &map_waypoints_x_m,
               std::vector<double> const &map_waypoints_y_m,
               std::vector<double> const &map_waypoints_s_m,
@@ -48,11 +50,12 @@ private:
                        std::vector<double> &prev_path_x,
                        std::vector<double> &prev_path_y);
 
-  double freq_s_;
+  double frequency_s_;
   double target_speed_mps_;
   double max_acc_mps2_;
   double max_jerk_mps3_;
   size_t path_len_;
+  size_t lane_num_;
   std::vector< std::vector<double> > next_coords_;
   std::vector<double> const &map_waypoints_x_m_;
   std::vector<double> const &map_waypoints_y_m_;
@@ -60,6 +63,11 @@ private:
   std::vector<double> const &map_waypoints_d_x_m_;
   std::vector<double> const &map_waypoints_d_y_m_;
   bool invoked_;
+  double prev_acc_mps2_;
+  double prev_s_m_;
+  double prev_d_m_;
+  double prev_speed_mps_;
+  PID speed_pid_ctrl_;
 
 };
 

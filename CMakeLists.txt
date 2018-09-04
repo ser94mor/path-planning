@@ -7,7 +7,7 @@ add_definitions(-std=c++11)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/main.cpp src/vehicle.cpp src/vehicle.h src/cost.cpp src/cost.h src/PathPlanner.cpp src/PathPlanner.hpp src/Car.cpp src/Car.hpp src/CarState.hpp)
+set(sources src/main.cpp src/vehicle.cpp src/vehicle.h src/cost.cpp src/cost.h src/PathPlanner.cpp src/PathPlanner.hpp src/Car.cpp src/Car.hpp src/CarState.hpp src/PID.cpp src/PID.h src/road.cpp src/road.h src/PathPlannerConfig.h)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
