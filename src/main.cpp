@@ -1,5 +1,6 @@
 #include "Car.hpp"
 #include "PathPlanner.hpp"
+#include "PathPlannerConfig.hpp"
 
 #include <fstream>
 #include <cmath>
@@ -23,13 +24,16 @@ using json = nlohmann::json;
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
-string hasData(const string &s) {
+string hasData(const string &s)
+{
   auto found_null = s.find("null");
   auto b1 = s.find_first_of('[');
   auto b2 = s.find_first_of('}');
-  if (found_null != string::npos) {
+  if (found_null != string::npos)
+  {
     return "";
-  } else if (b1 != string::npos && b2 != string::npos) {
+  } else if (b1 != string::npos && b2 != string::npos)
+  {
     return s.substr(b1, b2 - b1 + 2);
   }
   return "";
@@ -40,11 +44,13 @@ string hasData(const string &s) {
  * @param mph speed in miles per hour
  * @return speed in meters per second
  */
-inline double mph_to_mps(double mph) {
+inline double mph_to_mps(double mph)
+{
   return mph * 0.44704;
 }
 
-int main() {
+int main()
+{
   uWS::Hub h;
 
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
@@ -62,7 +68,8 @@ int main() {
   ifstream in_map_(map_file_.c_str(), ifstream::in);
 
   string line;
-  while (getline(in_map_, line)) {
+  while (getline(in_map_, line))
+  {
     istringstream iss(line);
     double x;
     double y;
@@ -81,111 +88,140 @@ int main() {
     map_waypoints_dy.push_back(d_y);
   }
 
-  PathPlanner path_planner(0.02, mph_to_mps(50.0), 10.0, 10.0, 50, 3,
-                           map_waypoints_x, map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy);
 
-  h.onMessage([&path_planner, &map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](
-      uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-      uWS::OpCode opCode) {
-    // "42" at the start of the message means there's a websocket message event.
-    // The 4 signifies a websocket message
-    // The 2 signifies a websocket event
-    //auto sdata = string(data).substr(0, length);
-    //cout << sdata << endl;
-    if (length > 2 && data[0] == '4' && data[1] == '2') {
+  PathPlannerConfig path_planner_config = {
+      .frequency_s = 0.02,
+      .max_speed_mps = mph_to_mps(50.0),
+      .max_acc_mps2 = 10.0,
+      .max_jerk_mps3 = 10.0,
+      .path_len = 50,
+      .num_lanes = 3,
+      .lane_width_m = 4.0,
+      .map_waypoints_x_m = map_waypoints_x,
+      .map_waypoints_y_m = map_waypoints_y,
+      .map_waypoints_s_m = map_waypoints_s,
+      .map_waypoints_d_x_m = map_waypoints_dx,
+      .map_waypoints_d_y_m = map_waypoints_dy,
+  };
+  PathPlanner path_planner(path_planner_config);
 
-      auto s = hasData(data);
+  h.onMessage(
+      [&path_planner, &map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](
+          uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+          uWS::OpCode opCode)
+      {
+        // "42" at the start of the message means there's a websocket message event.
+        // The 4 signifies a websocket message
+        // The 2 signifies a websocket event
+        //auto sdata = string(data).substr(0, length);
+        //cout << sdata << endl;
+        if (length > 2 && data[0] == '4' && data[1] == '2')
+        {
 
-      if (!s.empty()) {
-        auto j = json::parse(s);
+          auto s = hasData(data);
 
-        string event = j[0].get<string>();
+          if (!s.empty())
+          {
+            auto j = json::parse(s);
 
-        if (event == "telemetry") {
-          // j[1] is the data JSON object
+            string event = j[0].get<string>();
 
-          // Main car's localization Data
-          double car_x = j[1]["x"];
-          double car_y = j[1]["y"];
-          double car_s = j[1]["s"];
-          double car_d = j[1]["d"];
-          double car_yaw = j[1]["yaw"];
-          double car_speed = j[1]["speed"];
+            if (event == "telemetry")
+            {
+              // j[1] is the data JSON object
 
-          // Previous path data given to the Planner
-          std::vector<double> previous_path_x = j[1]["previous_path_x"];
-          std::vector<double> previous_path_y = j[1]["previous_path_y"];
-          // Previous path's end s and d values
-          double end_path_s = j[1]["end_path_s"];
-          double end_path_d = j[1]["end_path_d"];
+              // Main car's localization Data
+              double car_x = j[1]["x"];
+              double car_y = j[1]["y"];
+              double car_s = j[1]["s"];
+              double car_d = j[1]["d"];
+              double car_yaw = j[1]["yaw"];
+              double car_speed = j[1]["speed"];
 
-          // Sensor Fusion Data, a list of all other cars on the same side of the road.
-          std::vector< std::vector<double> > sensor_fusion = j[1]["sensor_fusion"];
+              // Previous path data given to the Planner
+              std::vector<double> previous_path_x = j[1]["previous_path_x"];
+              std::vector<double> previous_path_y = j[1]["previous_path_y"];
+              // Previous path's end s and d values
+              double end_path_s = j[1]["end_path_s"];
+              double end_path_d = j[1]["end_path_d"];
 
-          json msgJson;
-          // TODO: deg2rad(car_yaw)
-          double yaw_rad = deg2rad(car_yaw);
-          Car car(0, car_x, car_y, car_x*cos(yaw_rad), car_y*sin(yaw_rad), yaw_rad, mph_to_mps(car_speed), car_s, car_d);
+              // Sensor Fusion Data, a list of all other cars on the same side of the road.
+              std::vector<std::vector<double> > sensor_fusion = j[1]["sensor_fusion"];
 
-          std::vector< std::vector<double> > next_coords =
-              path_planner.GetNextXYTrajectories(car, previous_path_x, previous_path_y, end_path_s, end_path_d, sensor_fusion);
+              json msgJson;
+              // TODO: deg2rad(car_yaw)
+              double yaw_rad = deg2rad(car_yaw);
+              Car car(0, car_x, car_y, car_x * cos(yaw_rad), car_y * sin(yaw_rad), yaw_rad, mph_to_mps(car_speed),
+                      car_s, car_d);
 
-          msgJson["next_x"] = next_coords[0];
-          msgJson["next_y"] = next_coords[1];
+              std::vector<std::vector<double> > next_coords =
+                  path_planner.GetNextXYTrajectories(car, previous_path_x, previous_path_y, end_path_s, end_path_d,
+                                                     sensor_fusion);
 
-          //std::cout << "X:";
-          //for (auto x : next_coords[0]) {
-          //  std::cout << " " << x;
-          //}
+              msgJson["next_x"] = next_coords[0];
+              msgJson["next_y"] = next_coords[1];
 
-          //std::cout << "\nY:";
-          //for (auto y : next_coords[1]) {
-          //  std::cout << " " << y;
-          //}
-          //std::cout << std::endl;
+              //std::cout << "X:";
+              //for (auto x : next_coords[0]) {
+              //  std::cout << " " << x;
+              //}
+
+              //std::cout << "\nY:";
+              //for (auto y : next_coords[1]) {
+              //  std::cout << " " << y;
+              //}
+              //std::cout << std::endl;
 
 
-          auto msg = "42[\"control\"," + msgJson.dump() + "]";
+              auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
-          //this_thread::sleep_for(chrono::milliseconds(1000));
-          ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+              //this_thread::sleep_for(chrono::milliseconds(1000));
+              ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 
+            }
+          } else
+          {
+            // Manual driving
+            std::string msg = "42[\"manual\",{}]";
+            ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+          }
         }
-      } else {
-        // Manual driving
-        std::string msg = "42[\"manual\",{}]";
-        ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-      }
-    }
-  });
+      });
 
   // We don't need this since we're not using HTTP but if it's removed the
   // program doesn't compile :-(
   h.onHttpRequest([](uWS::HttpResponse *res, uWS::HttpRequest req, char *data,
-                     size_t, size_t) {
-    const std::string s = "<h1>Hello world!</h1>";
-    if (req.getUrl().valueLength == 1) {
-      res->end(s.data(), s.length());
-    } else {
-      // i guess this should be done more gracefully?
-      res->end(nullptr, 0);
-    }
-  });
+                     size_t, size_t)
+                  {
+                    const std::string s = "<h1>Hello world!</h1>";
+                    if (req.getUrl().valueLength == 1)
+                    {
+                      res->end(s.data(), s.length());
+                    } else
+                    {
+                      // i guess this should be done more gracefully?
+                      res->end(nullptr, 0);
+                    }
+                  });
 
-  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
-    std::cout << "Connected!!!" << std::endl;
-  });
+  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req)
+                 {
+                   std::cout << "Connected!!!" << std::endl;
+                 });
 
   h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
-                         char *message, size_t length) {
-    ws.close();
-    std::cout << "Disconnected" << std::endl;
-  });
+                         char *message, size_t length)
+                    {
+                      ws.close();
+                      std::cout << "Disconnected" << std::endl;
+                    });
 
   int port = 4567;
-  if (h.listen(port)) {
+  if (h.listen(port))
+  {
     std::cout << "Listening to port " << port << std::endl;
-  } else {
+  } else
+  {
     std::cerr << "Failed to listen to port" << std::endl;
     return -1;
   }

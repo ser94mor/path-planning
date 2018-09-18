@@ -1,3 +1,5 @@
+#include <utility>
+
 //
 // Created by aoool on 8/8/18.
 //
@@ -146,58 +148,11 @@ std::vector<double> PathPlanner::GetPrevXY(Car &car,
   } else {
 
     // coordinates are stored in next_coords_ vector
-    size_t index = path_len_ + prev_size - back_offset - 1;
+    size_t index = config_.path_len + prev_size - back_offset - 1;
     return { next_coords_[0][index], next_coords_[1][index] };
 
   }
 }
-
-CarState PathPlanner::GetCarState(Car &car,
-                                  std::vector<double> &prev_path_x,
-                                  std::vector<double> &prev_path_y) {
-  auto xy_coords_t4 = GetPrevXY(car, prev_path_x, prev_path_y, 0);
-  auto xy_coords_t3 = GetPrevXY(car, prev_path_x, prev_path_y, 1);
-  auto xy_coords_t2 = GetPrevXY(car, prev_path_x, prev_path_y, 2);
-  auto xy_coords_t1 = GetPrevXY(car, prev_path_x, prev_path_y, 3);
-
-  double yaw_rad_t4 = atan2(xy_coords_t4[1] - xy_coords_t3[1], xy_coords_t4[0] - xy_coords_t3[0]);
-  double yaw_rad_t3 = atan2(xy_coords_t3[1] - xy_coords_t2[1], xy_coords_t3[0] - xy_coords_t2[0]);
-  double yaw_rad_t2 = atan2(xy_coords_t2[1] - xy_coords_t1[1], xy_coords_t2[0] - xy_coords_t1[0]);
-
-  auto sd_coords_t4 = GetFrenet(xy_coords_t4[0], xy_coords_t4[1], yaw_rad_t4, map_waypoints_x_m_, map_waypoints_y_m_);
-  auto sd_coords_t3 = GetFrenet(xy_coords_t3[0], xy_coords_t3[1], yaw_rad_t3, map_waypoints_x_m_, map_waypoints_y_m_);
-  auto sd_coords_t2 = GetFrenet(xy_coords_t2[0], xy_coords_t2[1], yaw_rad_t2, map_waypoints_x_m_, map_waypoints_y_m_);
-
-  double speed_x = calc_speed(xy_coords_t3[0], xy_coords_t4[0], frequency_s_);
-  double speed_y = calc_speed(xy_coords_t3[1], xy_coords_t4[1], frequency_s_);
-  double speed_s = calc_speed(sd_coords_t3[0], sd_coords_t4[0], frequency_s_);
-  double speed_d = calc_speed(sd_coords_t3[1], sd_coords_t4[1], frequency_s_);
-
-  double acc_x = calc_acc(xy_coords_t2[0], xy_coords_t3[0], xy_coords_t4[0], frequency_s_);
-  double acc_y = calc_acc(xy_coords_t2[1], xy_coords_t3[1], xy_coords_t4[1], frequency_s_);
-  double acc_s = calc_acc(sd_coords_t2[0], sd_coords_t3[0], sd_coords_t4[0], frequency_s_);
-  double acc_d = calc_acc(sd_coords_t2[1], sd_coords_t3[1], sd_coords_t4[1], frequency_s_);
-
-  CarState car_state = {
-      .x = xy_coords_t4[0],
-      .y = xy_coords_t4[1],
-      .s = sd_coords_t4[0],
-      .d = sd_coords_t4[1],
-      .speed_x = speed_x,
-      .speed_y = speed_y,
-      .speed_s = speed_s,
-      .speed_d = speed_d,
-      .acc_x = acc_x,
-      .acc_y = acc_y,
-      .acc_s = acc_s,
-      .acc_d = acc_d,
-  };
-
-  return car_state;
-}
-
-
-static int counter = 0;
 
 std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
                                                                       std::vector<double> &prev_path_x,
@@ -210,7 +165,6 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
   auto prev_path_size = prev_path_x.size();
 
   std::cout << "======" << std::endl;
-  std::cout << car.d_m << std::endl;
 
   for (int i = 0; i < prev_path_size; i++) {
     // we do not re-plan the route
@@ -222,27 +176,28 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
   double d = prev_d_m_;
   double speed_s = prev_speed_mps_;
   double acc_s   = prev_acc_mps2_;
-  double jerk_s  = max_jerk_mps3_;
+  double jerk_s  = config_.max_jerk_mps3;
 
-  for (auto i = prev_path_size; i < path_len_; i++) {
-    if (speed_s < target_speed_mps_) {
-      acc_s += max_jerk_mps3_ * frequency_s_;
-      if (acc_s > max_acc_mps2_) {
-        acc_s = max_acc_mps2_;
+  for (auto i = prev_path_size; i < config_.path_len; i++) {
+    if (speed_s < config_.max_speed_mps) {
+      acc_s += config_.max_jerk_mps3 * config_.frequency_s;
+      if (acc_s > config_.max_acc_mps2) {
+        acc_s = config_.max_acc_mps2;
       }
-    } else if (speed_s > target_speed_mps_) {
-      acc_s -= jerk_s * frequency_s_;
-      if (-acc_s > max_acc_mps2_) {
-        acc_s = -max_acc_mps2_;
+    } else if (speed_s > config_.max_speed_mps) {
+      acc_s -= jerk_s * config_.frequency_s;
+      if (-acc_s > config_.max_acc_mps2) {
+        acc_s = -config_.max_acc_mps2;
       }
     }
 
-    speed_s += acc_s * frequency_s_;
+    speed_s += acc_s * config_.frequency_s;
     //speed_pid_ctrl_.UpdateError()
 
-    s += speed_s * frequency_s_;
+    s += speed_s * config_.frequency_s;
 
-    std::vector<double> coords = getXY(s, d, map_waypoints_s_m_, map_waypoints_x_m_, map_waypoints_y_m_);
+    std::vector<double> coords = getXY(s, d, config_.map_waypoints_s_m,
+                                       config_.map_waypoints_x_m, config_.map_waypoints_y_m);
 
     next_coords_[0][i] = coords[0];
     next_coords_[1][i] = coords[1];
@@ -251,8 +206,6 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
     prev_speed_mps_ = speed_s;
     prev_s_m_ = s;
     prev_d_m_ = d;
-
-    std::cout << ++counter << " s: " << s << "; speed_s: " << speed_s << "; acc_s: " << acc_s << std::endl;
   }
 
   invoked_ = true;
@@ -263,29 +216,9 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
 
 PathPlanner::~PathPlanner() = default;
 
-PathPlanner::PathPlanner(double frequency_s,
-                         double target_speed_mps,
-                         double max_acceleration_mps2,
-                         double max_jerk_mps3,
-                         size_t path_len,
-                         size_t lane_num,
-                         std::vector<double> const &map_waypoints_x_m,
-                         std::vector<double> const &map_waypoints_y_m,
-                         std::vector<double> const &map_waypoints_s_m,
-                         std::vector<double> const &map_waypoints_dx_m,
-                         std::vector<double> const &map_waypoints_dy_m):
-                         frequency_s_(frequency_s),
-                         target_speed_mps_(target_speed_mps),
-                         max_acc_mps2_(max_acceleration_mps2),
-                         max_jerk_mps3_(max_jerk_mps3),
-                         path_len_(path_len),
-                         lane_num_(lane_num),
-                         next_coords_(2, std::vector<double>(path_len_)),
-                         map_waypoints_x_m_(map_waypoints_x_m),
-                         map_waypoints_y_m_(map_waypoints_y_m),
-                         map_waypoints_s_m_(map_waypoints_s_m),
-                         map_waypoints_d_x_m_(map_waypoints_dx_m),
-                         map_waypoints_d_y_m_(map_waypoints_dy_m),
+PathPlanner::PathPlanner(PathPlannerConfig config):
+                         config_(std::move(config)),
+                         next_coords_(2, std::vector<double>(config_.path_len)),
                          invoked_(false),
                          prev_acc_mps2_(0.0),
                          prev_s_m_(0.0),
@@ -297,14 +230,15 @@ PathPlanner::PathPlanner(double frequency_s,
 
   std::cout << "|||||||||||||||||||||||||||||||||||||||||||||\n"
             << "||               PATH PLANNER              ||\n"
-            << "|| frequency            : " << std::setw(10) << frequency_s_      << " s     ||\n"
-            << "|| target speed         : " << std::setw(10) << target_speed_mps_ << " m/s   ||\n"
-            << "|| maximum acceleration : " << std::setw(10) << max_acc_mps2_     << " m/s^2 ||\n"
-            << "|| maximum jerk         : " << std::setw(10) << max_jerk_mps3_    << " m/s^3 ||\n"
-            << "|| path length          : " << std::setw(10) << path_len_         << " -     ||\n"
-            << "|| number of lanes      : " << std::setw(10) << lane_num_         << " -     ||\n"
-            << "|| start speed          : " << std::setw(10) << prev_speed_mps_   << " m/s   ||\n"
-            << "|| start acceleration   : " << std::setw(10) << prev_acc_mps2_    << " m/s^2 ||\n"
+            << "|| frequency            : " << std::setw(10) << config_.frequency_s   << " s     ||\n"
+            << "|| target speed         : " << std::setw(10) << config_.max_speed_mps << " m/s   ||\n"
+            << "|| maximum acceleration : " << std::setw(10) << config_.max_acc_mps2  << " m/s^2 ||\n"
+            << "|| maximum jerk         : " << std::setw(10) << config_.max_jerk_mps3 << " m/s^3 ||\n"
+            << "|| path length          : " << std::setw(10) << config_.path_len      << " -     ||\n"
+            << "|| number of lanes      : " << std::setw(10) << config_.num_lanes     << " -     ||\n"
+            << "|| lane width           : " << std::setw(10) << config_.lane_width_m  << " m     ||\n"
+            << "|| start speed          : " << std::setw(10) << prev_speed_mps_       << " m/s   ||\n"
+            << "|| start acceleration   : " << std::setw(10) << prev_acc_mps2_        << " m/s^2 ||\n"
             << "|||||||||||||||||||||||||||||||||||||||||||||\n"
             << std::endl;
 }

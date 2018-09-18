@@ -5,26 +5,20 @@
 #ifndef PATH_PLANNING_PATHPLANNER_H
 #define PATH_PLANNING_PATHPLANNER_H
 
-#include <vector>
 #include "Car.hpp"
 #include "CarState.hpp"
-#include "PID.h"
+#include "PID.hpp"
+#include "PathPlannerConfig.hpp"
+
+#include <cstdlib>
+#include <vector>
+
 
 class PathPlanner {
 
 public:
 
-  PathPlanner(double frequency_s,
-              double target_speed_mps,
-              double max_acceleration_mps2,
-              double max_jerk_mps3,
-              size_t path_len,
-              size_t lane_num,
-              std::vector<double> const &map_waypoints_x_m,
-              std::vector<double> const &map_waypoints_y_m,
-              std::vector<double> const &map_waypoints_s_m,
-              std::vector<double> const &map_waypoints_d_x_m,
-              std::vector<double> const &map_waypoints_d_y_m);
+  PathPlanner(PathPlannerConfig config);
 
   /**
    * Generate X and Y tracks for the car, that is, plan its path.
@@ -50,18 +44,8 @@ private:
                        std::vector<double> &prev_path_x,
                        std::vector<double> &prev_path_y);
 
-  double frequency_s_;
-  double target_speed_mps_;
-  double max_acc_mps2_;
-  double max_jerk_mps3_;
-  size_t path_len_;
-  size_t lane_num_;
+  PathPlannerConfig config_;
   std::vector< std::vector<double> > next_coords_;
-  std::vector<double> const &map_waypoints_x_m_;
-  std::vector<double> const &map_waypoints_y_m_;
-  std::vector<double> const &map_waypoints_s_m_;
-  std::vector<double> const &map_waypoints_d_x_m_;
-  std::vector<double> const &map_waypoints_d_y_m_;
   bool invoked_;
   double prev_acc_mps2_;
   double prev_s_m_;
