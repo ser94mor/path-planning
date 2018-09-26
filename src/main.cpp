@@ -155,23 +155,10 @@ int main()
                       car_s, car_d);
 
               std::vector<std::vector<double> > next_coords =
-                  path_planner.GetNextXYTrajectories(car, previous_path_x, previous_path_y, end_path_s, end_path_d,
-                                                     sensor_fusion);
+                  path_planner.GetNextXYTrajectories(car, previous_path_x, previous_path_y, sensor_fusion);
 
               msgJson["next_x"] = next_coords[0];
               msgJson["next_y"] = next_coords[1];
-
-              //std::cout << "X:";
-              //for (auto x : next_coords[0]) {
-              //  std::cout << " " << x;
-              //}
-
-              //std::cout << "\nY:";
-              //for (auto y : next_coords[1]) {
-              //  std::cout << " " << y;
-              //}
-              //std::cout << std::endl;
-
 
               auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
