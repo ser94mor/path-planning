@@ -158,8 +158,6 @@ std::vector<double> PathPlanner::GetPrevXY(Car &car,
 std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
                                                                       std::vector<double> &prev_path_x,
                                                                       std::vector<double> &prev_path_y,
-                                                                      double end_path_s,
-                                                                      double end_path_d,
                                                                       std::vector< std::vector<double> > &sensor_fusion)
 {
   assert( prev_path_x.size() == prev_path_y.size() );
@@ -184,6 +182,7 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
 
   for (auto i = prev_path_size; i < config_.path_len; i++) {
     if (speed_s < config_.max_speed_mps) {
+      speed_pid_ctrl_.UpdateError();
       acc_s += config_.max_jerk_mps3 * config_.frequency_s;
       if (acc_s > config_.max_acc_mps2) {
         acc_s = config_.max_acc_mps2;
@@ -196,7 +195,6 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
     }
 
     speed_s += acc_s * config_.frequency_s;
-    //speed_pid_ctrl_.UpdateError()
 
     s += speed_s * config_.frequency_s;
 
@@ -224,9 +222,10 @@ PathPlanner::PathPlanner(PathPlannerConfig config):
                          config_(std::move(config)),
                          next_coords_(2, std::vector<double>(config_.path_len)),
                          invoked_(false),
+                         target_speed_mps_(config_.max_speed_mps),
                          prev_acc_mps2_(0.0),
                          prev_s_m_(0.0),
-                         prev_d_m_(6.16483),
+                         prev_d_m_(config_.lane_width_m * 1.5),
                          prev_speed_mps_(0.0),
                          speed_pid_ctrl_()
 {

@@ -40,8 +40,6 @@ public:
   std::vector< std::vector< double > > &GetNextXYTrajectories(Car &car,
                                                               std::vector<double> &prev_path_x_m,
                                                               std::vector<double> &prev_path_y_m,
-                                                              double end_path_s_m,
-                                                              double end_path_d_m,
                                                               std::vector< std::vector<double> > &sensor_fusion);
 
   virtual ~PathPlanner();
@@ -60,6 +58,7 @@ private:
   PathPlannerConfig config_;
   std::vector< std::vector<double> > next_coords_;
   bool invoked_;
+  double target_speed_mps_;
   double prev_acc_mps2_;
   double prev_s_m_;
   double prev_d_m_;
