@@ -1,5 +1,6 @@
-#include "Car.hpp"
-#include "PathPlanner.hpp"
+#include "car.hpp"
+#include "state.hpp"
+#include "path_planner.hpp"
 #include "PathPlannerConfig.hpp"
 
 #include <fstream>
@@ -10,8 +11,8 @@
 #include <thread>
 #include <vector>
 #include <limits>
-#include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/Eigen/QR"
+#include <Eigen/Core>
+#include <Eigen/QR>
 #include "json.hpp"
 #include "helpers.hpp"
 
@@ -37,16 +38,6 @@ string hasData(const string &s)
     return s.substr(b1, b2 - b1 + 2);
   }
   return "";
-}
-
-/**
- * Convert value in miles per hour unit to meters per second
- * @param mph speed in miles per hour
- * @return speed in meters per second
- */
-inline double mph_to_mps(double mph)
-{
-  return mph * 0.44704;
 }
 
 int main()
@@ -96,7 +87,7 @@ int main()
       .max_jerk_mps3 = 10.0,
       .path_len = 50,
       .num_lanes = 3,
-      .lane_width_m = 4.0,
+      .lane_width_m = 4,
       .map_waypoints_x_m = map_waypoints_x,
       .map_waypoints_y_m = map_waypoints_y,
       .map_waypoints_s_m = map_waypoints_s,
@@ -149,10 +140,24 @@ int main()
               std::vector<std::vector<double> > sensor_fusion = j[1]["sensor_fusion"];
 
               json msgJson;
-              // TODO: deg2rad(car_yaw)
-              double yaw_rad = deg2rad(car_yaw);
-              Car car(0, car_x, car_y, car_x * cos(yaw_rad), car_y * sin(yaw_rad), yaw_rad, mph_to_mps(car_speed),
-                      car_s, car_d);
+
+
+              // some values need to be converted into International System of Units
+              double vel_mps = mph_to_mps(car_speed);
+              double yaw_rad = deg_to_rad(car_yaw);
+
+              Car car = {
+                .id = -1,
+                .state = State::KeepLane,
+                .x_m = car_x,
+                .y_m = car_y,
+                .s_m = car_s,
+                .d_m = car_d,
+                .vel_mps = vel_mps,
+                .vel_x_mps = vel_mps * cos(yaw_rad),
+                .vel_y_mps = vel_mps * sin(yaw_rad),
+                .yaw_rad = yaw_rad,
+              };
 
               std::vector<std::vector<double> > next_coords =
                   path_planner.GetNextXYTrajectories(car, previous_path_x, previous_path_y, end_path_s, end_path_d,
@@ -160,18 +165,6 @@ int main()
 
               msgJson["next_x"] = next_coords[0];
               msgJson["next_y"] = next_coords[1];
-
-              //std::cout << "X:";
-              //for (auto x : next_coords[0]) {
-              //  std::cout << " " << x;
-              //}
-
-              //std::cout << "\nY:";
-              //for (auto y : next_coords[1]) {
-              //  std::cout << " " << y;
-              //}
-              //std::cout << std::endl;
-
 
               auto msg = "42[\"control\"," + msgJson.dump() + "]";
 

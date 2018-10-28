@@ -5,14 +5,27 @@
 #ifndef PATH_PLANNING_PATHPLANNER_H
 #define PATH_PLANNING_PATHPLANNER_H
 
-#include "Car.hpp"
+#include "car.hpp"
 #include "CarState.hpp"
 #include "PID.hpp"
-#include "PathPlannerConfig.hpp"
 
 #include <cstdlib>
 #include <vector>
 
+struct PathPlannerConfig {
+  double frequency_s;
+  double max_speed_mps;
+  double max_acc_mps2;
+  double max_jerk_mps3;
+  size_t path_len;
+  size_t num_lanes;
+  double lane_width_m;
+  std::vector<double> map_waypoints_x_m;
+  std::vector<double> map_waypoints_y_m;
+  std::vector<double> map_waypoints_s_m;
+  std::vector<double> map_waypoints_d_x_m;
+  std::vector<double> map_waypoints_d_y_m;
+};
 
 class PathPlanner {
 

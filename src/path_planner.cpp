@@ -4,15 +4,16 @@
 // Created by aoool on 8/8/18.
 //
 
-#include "PathPlanner.hpp"
-#include "Car.hpp"
+#include "car.hpp"
 #include "helpers.hpp"
+#include "path_planner.hpp"
 
 #include <cmath>
 #include <cassert>
 #include <limits>
 #include <iostream>
 #include <iomanip>
+#include <vector>
 
 
 ulong ClosestWaypoint(double x, double y, const std::vector<double> &maps_x, const std::vector<double> &maps_y) {
@@ -162,9 +163,12 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
                                                                       std::vector< std::vector<double> > &sensor_fusion)
 {
   assert( prev_path_x.size() == prev_path_y.size() );
+
+  static uint64_t invocation_counter = 0;
+
   auto prev_path_size = prev_path_x.size();
 
-  std::cout << "======" << std::endl;
+  std::cout << "===" << ++invocation_counter << "===\n";
 
   for (int i = 0; i < prev_path_size; i++) {
     // we do not re-plan the route

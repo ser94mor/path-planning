@@ -22,13 +22,19 @@ inline double calc_jerk(double p1, double p2, double p3, double p4, double time)
 // For converting back and forth between radians and degrees.
 inline constexpr double pi() { return M_PI; }
 
-inline double deg2rad(double x) { return x * pi() / 180; }
+inline double deg_to_rad(double x) { return x * pi() / 180; }
 
-inline double rad2deg(double x) { return x * 180 / pi(); }
+inline double rad_to_deg(double x) { return x * 180 / pi(); }
 
 
 inline double distance(double x1, double y1, double x2, double y2) {
   return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+}
+
+// Convert value in miles per hour unit to meters per second.
+inline constexpr double mph_to_mps(double mph)
+{
+  return mph * 0.44704;
 }
 
 #endif //PATH_PLANNING_HELPERS_HPP

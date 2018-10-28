@@ -7,7 +7,32 @@ add_definitions(-std=c++11)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/main.cpp src/vehicle.cpp src/vehicle.h src/cost.cpp src/cost.h src/PathPlanner.cpp src/PathPlanner.hpp src/Car.cpp src/Car.hpp src/CarState.hpp src/PID.cpp src/PID.hpp src/road.cpp src/road.h src/PathPlannerConfig.hpp)
+include_directories( src/ src/Eigen-3.3 )
+
+set(sources src/main.cpp
+
+            src/path_planner.cpp
+            src/path_planner.hpp
+
+            src/PID.cpp
+            src/PID.hpp
+
+            src/PathPlannerConfig.hpp
+
+            src/behavior_layer.cpp
+            src/behavior_layer.hpp
+
+            src/prediction_layer.cpp
+            src/prediction_layer.hpp
+
+            src/localization_layer.cpp
+            src/localization_layer.hpp
+
+        src/car.hpp
+
+            src/state.hpp
+
+        )
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
@@ -20,8 +45,17 @@ link_directories(/usr/local/Cellar/libuv/1.11.0/lib)
 
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 
+add_library(Catch INTERFACE)
+add_executable( path_planning_test src/test/state_test.cpp src/state.hpp
+                                   src/test/helpers_test.cpp src/helpers.hpp
+                                   src/test/car_test.cpp src/car.hpp
+        src/test/test.cpp)
+target_link_libraries(path_planning_test Catch)
+
 
 add_executable(path_planning ${sources})
-add_executable(test  src/Test.cpp src/helpers.hpp)
+
+enable_testing()
+add_test( NAME path_planning_test COMMAND path_planning_test )
 
 target_link_libraries(path_planning z ssl uv uWS)
