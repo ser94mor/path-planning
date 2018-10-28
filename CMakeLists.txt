@@ -17,8 +17,6 @@ set(sources src/main.cpp
             src/PID.cpp
             src/PID.hpp
 
-            src/PathPlannerConfig.hpp
-
             src/behavior_layer.cpp
             src/behavior_layer.hpp
 
@@ -28,10 +26,9 @@ set(sources src/main.cpp
             src/localization_layer.cpp
             src/localization_layer.hpp
 
-        src/car.hpp
+            src/car.hpp
 
             src/state.hpp
-
         )
 
 

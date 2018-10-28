@@ -1,7 +1,6 @@
 #include "car.hpp"
 #include "state.hpp"
 #include "path_planner.hpp"
-#include "PathPlannerConfig.hpp"
 
 #include <fstream>
 #include <cmath>
