@@ -130,9 +130,9 @@ getXY(double s, double d, const std::vector<double> &maps_s, const std::vector<d
 
 }
 
-std::vector<double> PathPlanner::GetPrevXY(Car &car,
-                                           std::vector<double> &prev_path_x,
-                                           std::vector<double> &prev_path_y,
+std::vector<double> PathPlanner::GetPrevXY(Car& car,
+                                           std::vector<double>& prev_path_x,
+                                           std::vector<double>& prev_path_y,
                                            int back_offset) {
   if (not invoked_) {
     // the first invocation of the path planner happens when car does not move, thus all previous coords are the same
@@ -164,9 +164,9 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
 
   static uint64_t invocation_counter = 0;
 
-  auto prev_path_size = prev_path_x.size();
-
   std::cout << "===" << ++invocation_counter << "===\n";
+
+  auto prev_path_size = prev_path_x.size();
 
   for (int i = 0; i < prev_path_size; i++) {
     // we do not re-plan the route
@@ -179,24 +179,17 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
   double speed_s = prev_speed_mps_;
   double acc_s   = prev_acc_mps2_;
   double jerk_s  = config_.max_jerk_mps3;
+  double target_speed_s = config_.max_speed_mps;
 
   for (auto i = prev_path_size; i < config_.path_len; i++) {
-    if (speed_s < config_.max_speed_mps) {
-      speed_pid_ctrl_.UpdateError();
-      acc_s += config_.max_jerk_mps3 * config_.frequency_s;
-      if (acc_s > config_.max_acc_mps2) {
-        acc_s = config_.max_acc_mps2;
-      }
-    } else if (speed_s > config_.max_speed_mps) {
-      acc_s -= jerk_s * config_.frequency_s;
-      if (-acc_s > config_.max_acc_mps2) {
-        acc_s = -config_.max_acc_mps2;
-      }
-    }
 
-    speed_s += acc_s * config_.frequency_s;
+    speed_s = speed_ctrl_.GetVelocity(target_speed_s, speed_s, config_.frequency_s);
 
     s += speed_s * config_.frequency_s;
+
+    std::cout << "speed = " << speed_s
+              << "\ns = " << s
+              << std::endl;
 
     std::vector<double> coords = getXY(s, d, config_.map_waypoints_s_m,
                                        config_.map_waypoints_x_m, config_.map_waypoints_y_m);
@@ -218,18 +211,18 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
 
 PathPlanner::~PathPlanner() = default;
 
-PathPlanner::PathPlanner(PathPlannerConfig config):
-                         config_(std::move(config)),
-                         next_coords_(2, std::vector<double>(config_.path_len)),
-                         invoked_(false),
-                         target_speed_mps_(config_.max_speed_mps),
-                         prev_acc_mps2_(0.0),
-                         prev_s_m_(0.0),
-                         prev_d_m_(config_.lane_width_m * 1.5),
-                         prev_speed_mps_(0.0),
-                         speed_pid_ctrl_()
+PathPlanner::PathPlanner(PathPlannerConfig path_config, PIDControllerConfig pid_config):
+                         config_{std::move(path_config)},
+                         next_coords_{2, std::vector<double>(config_.path_len)},
+                         invoked_{false},
+                         target_speed_mps_{config_.max_speed_mps},
+                         prev_acc_mps2_{0.0},
+                         prev_s_m_{0.0},
+                         prev_d_m_{config_.lane_width_m * 1.5},
+                         prev_speed_mps_{0.0},
+                         speed_ctrl_{config_.max_speed_mps, 0, config_.max_acc_mps2, -config_.max_acc_mps2,
+                                     config_.max_jerk_mps3, -config_.max_jerk_mps3, pid_config}
 {
-  speed_pid_ctrl_.Init(0.2, 0.0, 3.0, 0, 0, 0.0, 0.0, 0.0, 0.0);
 
   std::cout << "|||||||||||||||||||||||||||||||||||||||||||||\n"
             << "||               PATH PLANNER              ||\n"
@@ -244,4 +237,5 @@ PathPlanner::PathPlanner(PathPlannerConfig config):
             << "|| start acceleration   : " << std::setw(10) << prev_acc_mps2_        << " m/s^2 ||\n"
             << "|||||||||||||||||||||||||||||||||||||||||||||\n"
             << std::endl;
+
 }

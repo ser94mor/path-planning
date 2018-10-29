@@ -6,8 +6,7 @@
 #define PATH_PLANNING_PATHPLANNER_H
 
 #include "car.hpp"
-#include "CarState.hpp"
-#include "PID.hpp"
+#include "speed_controller.hpp"
 
 #include <cstdlib>
 #include <vector>
@@ -31,18 +30,18 @@ class PathPlanner {
 
 public:
 
-  PathPlanner(PathPlannerConfig config);
+  PathPlanner(PathPlannerConfig config, PIDControllerConfig pid_config);
+
+  virtual ~PathPlanner();
 
   /**
    * Generate X and Y tracks for the car, that is, plan its path.
    * @return vector containing 2 vectors with X and Y coordinates correspondingly
    */
-  std::vector< std::vector< double > > &GetNextXYTrajectories(Car &car,
-                                                              std::vector<double> &prev_path_x_m,
-                                                              std::vector<double> &prev_path_y_m,
-                                                              std::vector< std::vector<double> > &sensor_fusion);
-
-  virtual ~PathPlanner();
+  std::vector< std::vector< double > >& GetNextXYTrajectories(Car& car,
+                                                              std::vector<double>& prev_path_x_m,
+                                                              std::vector<double>& prev_path_y_m,
+                                                              std::vector< std::vector<double> >& sensor_fusion);
 
 private:
 
@@ -50,10 +49,6 @@ private:
                                 std::vector<double> &prev_path_x,
                                 std::vector<double> &prev_path_y,
                                 int back_offset);
-
-  CarState GetCarState(Car &car,
-                       std::vector<double> &prev_path_x,
-                       std::vector<double> &prev_path_y);
 
   PathPlannerConfig config_;
   std::vector< std::vector<double> > next_coords_;
@@ -63,7 +58,7 @@ private:
   double prev_s_m_;
   double prev_d_m_;
   double prev_speed_mps_;
-  PID speed_pid_ctrl_;
+  SpeedController speed_ctrl_;
 
 };
 

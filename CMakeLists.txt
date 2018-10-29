@@ -14,8 +14,8 @@ set(sources src/main.cpp
             src/path_planner.cpp
             src/path_planner.hpp
 
-            src/PID.cpp
-            src/PID.hpp
+            src/pid_controller.cpp
+            src/pid_controller.hpp
 
             src/behavior_layer.cpp
             src/behavior_layer.hpp
@@ -29,7 +29,9 @@ set(sources src/main.cpp
             src/car.hpp
 
             src/state.hpp
-        )
+
+            src/speed_controller.cpp
+            src/speed_controller.hpp)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 

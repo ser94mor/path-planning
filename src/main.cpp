@@ -81,7 +81,7 @@ int main()
 
   PathPlannerConfig path_planner_config = {
       .frequency_s = 0.02,
-      .max_speed_mps = mph_to_mps(50.0),
+      .max_speed_mps = mph_to_mps(49.0),
       .max_acc_mps2 = 10.0,
       .max_jerk_mps3 = 10.0,
       .path_len = 50,
@@ -93,7 +93,20 @@ int main()
       .map_waypoints_d_x_m = map_waypoints_dx,
       .map_waypoints_d_y_m = map_waypoints_dy,
   };
-  PathPlanner path_planner(path_planner_config);
+
+  PIDControllerConfig pid_controller_config = {
+      .Kp_initial = 0.2,
+      .Ki_initial = 0.0,
+      .Kd_initial = 3.0,
+      .twiddle_dKp_initial = 0.0,
+      .twiddle_dKi_initial = 0.0,
+      .twiddle_dKd_initial = 0.0,
+      .delay_before_calc_tot_error = 0,
+      .frequency_of_coeff_tuning = 0,
+      .stop_threshold = 0.0,
+  };
+
+  PathPlanner path_planner(path_planner_config, pid_controller_config);
 
   h.onMessage(
       [&path_planner, &map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](
