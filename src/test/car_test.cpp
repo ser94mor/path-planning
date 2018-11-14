@@ -41,3 +41,18 @@ TEST_CASE("operator<<(Car)", "[car]") {
 
   REQUIRE( oss.str() == expected_res );
 }
+
+TEST_CASE("Car::FromVector", "[car]") {
+  std::vector<double> car_vect{ 12 /*id*/, 37.9 /*x*/, -49.4 /*y*/, -1.9 /*vx*/, 6.5 /*vy*/, 127.8 /*s*/, 0.45 /*d*/};
+
+  Car car = Car::FromVector(car_vect);
+
+  REQUIRE( car.id    == 12 );
+  REQUIRE( car.state == State::KeepLane );
+  REQUIRE( car.x_m   == Approx(37.9) );
+  REQUIRE( car.y_m   == Approx(-49.4) );
+  REQUIRE( car.vel_mps == Approx(6.772001181) );
+  REQUIRE( car.vel_x_mps == Approx(-1.9) );
+  REQUIRE( car.vel_y_mps == Approx(6.5) );
+  REQUIRE( car.yaw_rad == Approx(1.8551811022) );
+}

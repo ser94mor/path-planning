@@ -1,0 +1,11 @@
+{
+  "Kp_initial": 0.2,
+  "Ki_initial": 0.0,
+  "Kd_initial": 3.0,
+  "twiddle_dKp_initial": 0.0,
+  "twiddle_dKi_initial": 0.0,
+  "twiddle_dKd_initial": 0.0,
+  "delay_before_calc_tot_error": 0,
+  "frequency_of_coeff_tuning": 0,
+  "stop_threshold": 0.0
+}

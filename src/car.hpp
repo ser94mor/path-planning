@@ -6,8 +6,13 @@
 #define PATH_PLANNING_CAR_HPP
 
 #include "state.hpp"
+#include "helpers.hpp"
 
 #include <iostream>
+#include <vector>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
 
 struct Car {
   int    id;
@@ -20,6 +25,8 @@ struct Car {
   double vel_x_mps;
   double vel_y_mps;
   double yaw_rad;
+
+  static Car FromVector(const std::vector<double>& car_info);
 };
 
 inline std::ostream& operator<<(std::ostream& ostream, const Car& car) {
@@ -38,6 +45,10 @@ inline std::ostream& operator<<(std::ostream& ostream, const Car& car) {
           << "}";
 
   return ostream;
+}
+
+inline bool operator==(const Car& car1, const Car& car2) {
+  return not static_cast<bool>(memcmp(&car1, &car2, sizeof(Car)));
 }
 
 #endif //PATH_PLANNING_CAR_HPP

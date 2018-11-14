@@ -187,10 +187,6 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
 
     s += speed_s * config_.frequency_s;
 
-    std::cout << "speed = " << speed_s
-              << "\ns = " << s
-              << std::endl;
-
     std::vector<double> coords = getXY(s, d, config_.map_waypoints_s_m,
                                        config_.map_waypoints_x_m, config_.map_waypoints_y_m);
 

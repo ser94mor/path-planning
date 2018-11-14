@@ -1,19 +1,10 @@
 #ifndef PATH_PLANNING_PIDCONTROLLER_HPP
 #define PATH_PLANNING_PIDCONTROLLER_HPP
 
+#include "pid_controller_config.hpp"
+
 #include <cstdint>
 
-struct PIDControllerConfig {
-  double Kp_initial;
-  double Ki_initial;
-  double Kd_initial;
-  double twiddle_dKp_initial;
-  double twiddle_dKi_initial;
-  double twiddle_dKd_initial;
-  int    delay_before_calc_tot_error; // measured in iterations
-  int    frequency_of_coeff_tuning;   // measured in iterations
-  double stop_threshold;              // stop TWIDDLE when the sum of coefficients is less than or equal to this value
-};
 
 class PIDController {
 public:

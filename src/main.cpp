@@ -15,10 +15,15 @@
 #include "json.hpp"
 #include "helpers.hpp"
 
+
 using namespace std;
 
 // for convenience
 using json = nlohmann::json;
+
+const char* kDefaultPathPlannerConfigFile{"../data/path_planner_config.json"};
+const char* kDefaultPIDControllerConfigFile{"../data/pid_controller_config.json"};
+const char* kDefaultHighwayMapFile{"../data/highway_map.csv"};
 
 
 // Checks if the SocketIO event has JSON data.
@@ -39,77 +44,37 @@ string hasData(const string &s)
   return "";
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-  uWS::Hub h;
-
-  // Load up map values for waypoint's x,y,s and d normalized normal vectors
-  vector<double> map_waypoints_x;
-  vector<double> map_waypoints_y;
-  vector<double> map_waypoints_s;
-  vector<double> map_waypoints_dx;
-  vector<double> map_waypoints_dy;
-
-  // Waypoint map to read from
-  string map_file_ = "../data/highway_map.csv";
-  // The max s value before wrapping around the track back to 0
-  double max_s = 6945.554;
-
-  ifstream in_map_(map_file_.c_str(), ifstream::in);
-
-  string line;
-  while (getline(in_map_, line))
-  {
-    istringstream iss(line);
-    double x;
-    double y;
-    float s;
-    float d_x;
-    float d_y;
-    iss >> x;
-    iss >> y;
-    iss >> s;
-    iss >> d_x;
-    iss >> d_y;
-    map_waypoints_x.push_back(x);
-    map_waypoints_y.push_back(y);
-    map_waypoints_s.push_back(s);
-    map_waypoints_dx.push_back(d_x);
-    map_waypoints_dy.push_back(d_y);
+  //////
+  // initialize file names which provide information about the environment and configuration information
+  //////
+  char* path_planner_config_file = const_cast<char*>(kDefaultPathPlannerConfigFile);
+  char* pid_controller_config_file = const_cast<char*>(kDefaultPIDControllerConfigFile);
+  char* highway_map_file = const_cast<char*>(kDefaultHighwayMapFile);
+  if (argc == 4) {
+    path_planner_config_file = argv[1];
+    pid_controller_config_file = argv[2];
+    highway_map_file = argv[3];
+  } else if (argc != 1) {
+    std::cerr << "either no arguments or 3 arguments should be provided---"
+                 "path planner and pid controller configuration files as well as highway map file."
+              << std::endl;
+    std::exit(1);
   }
 
+  //////
+  // read configuration files
+  //////
+  PathPlannerConfig path_planner_config = PathPlannerConfig::FromFile(path_planner_config_file, highway_map_file);
+  PIDControllerConfig pid_controller_config = PIDControllerConfig::FromFile(pid_controller_config_file);
 
-  PathPlannerConfig path_planner_config = {
-      .frequency_s = 0.02,
-      .max_speed_mps = mph_to_mps(49.0),
-      .max_acc_mps2 = 10.0,
-      .max_jerk_mps3 = 10.0,
-      .path_len = 50,
-      .num_lanes = 3,
-      .lane_width_m = 4,
-      .map_waypoints_x_m = map_waypoints_x,
-      .map_waypoints_y_m = map_waypoints_y,
-      .map_waypoints_s_m = map_waypoints_s,
-      .map_waypoints_d_x_m = map_waypoints_dx,
-      .map_waypoints_d_y_m = map_waypoints_dy,
-  };
-
-  PIDControllerConfig pid_controller_config = {
-      .Kp_initial = 0.2,
-      .Ki_initial = 0.0,
-      .Kd_initial = 3.0,
-      .twiddle_dKp_initial = 0.0,
-      .twiddle_dKi_initial = 0.0,
-      .twiddle_dKd_initial = 0.0,
-      .delay_before_calc_tot_error = 0,
-      .frequency_of_coeff_tuning = 0,
-      .stop_threshold = 0.0,
-  };
+  uWS::Hub h;
 
   PathPlanner path_planner(path_planner_config, pid_controller_config);
 
   h.onMessage(
-      [&path_planner, &map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](
+      [&path_planner](
           uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
           uWS::OpCode opCode)
       {
@@ -170,6 +135,8 @@ int main()
                 .vel_y_mps = vel_mps * sin(yaw_rad),
                 .yaw_rad = yaw_rad,
               };
+              
+              std::cout << "\n\n" << car << "\n" << std::endl;
 
               std::vector<std::vector<double> > next_coords =
                   path_planner.GetNextXYTrajectories(car, previous_path_x, previous_path_y, sensor_fusion);
