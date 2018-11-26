@@ -7,19 +7,25 @@
 
 #include "prediction_layer.hpp"
 #include "localization_layer.hpp"
+#include "path_planner_config.hpp"
 
 
 class BehaviorLayer {
 
 public:
 
-  BehaviorLayer(PredictionLayer* prediction_layer, LocalizationLayer* localization_layer);
+  BehaviorLayer(const PathPlannerConfig& path_planner_config,
+                PredictionLayer& prediction_layer,
+                LocalizationLayer& localization_layer);
 
   virtual ~BehaviorLayer();
 
+  Car Plan(const Car& current_car);
+
 private:
-  PredictionLayer* prediction_layer_;
-  LocalizationLayer* localization_layer_;
+  const PathPlannerConfig& path_planner_config_;
+  PredictionLayer&         prediction_layer_;
+  LocalizationLayer&       localization_layer_;
 };
 
 

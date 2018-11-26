@@ -8,6 +8,8 @@
 #include <iostream>
 #include <typeinfo>
 #include <sstream>
+#include <vector>
+#include <unordered_map>
 
 enum class State {
   KeepLane,
@@ -17,7 +19,15 @@ enum class State {
   LaneChangeRight,
 };
 
-inline std::ostream& operator<<(std::ostream& ostream, const State state) {
+class FSM {
+public:
+  static const std::vector<State>& GetPossibleNextStates(State state);
+
+private:
+  static std::unordered_map< State, const std::vector<State> >  transition_map_;
+};
+
+inline std::ostream& operator <<(std::ostream& ostream, const State state) {
   switch (state) {
     case State::KeepLane:
       ostream << "KL";

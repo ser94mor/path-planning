@@ -5,41 +5,48 @@
 #ifndef PATH_PLANNING_HELPERS_HPP
 #define PATH_PLANNING_HELPERS_HPP
 
+#include "path_planner_config.hpp"
+
 #include <cmath>
 #include <cstdint>
+#include <vector>
 
-inline double calc_speed(double p1, double p2, double time) {
+inline double Calc1DSpeed(double p1, double p2, double time) {
   return (p2 - p1) / time;
 }
 
-inline double calc_acc(double p1, double p2, double p3, double time) {
-  return (calc_speed(p2, p3, time) - calc_speed(p1, p2, time)) / time;
+inline double Calc1DAcc(double p1, double p2, double p3, double time) {
+  return (Calc1DSpeed(p2, p3, time) - Calc1DSpeed(p1, p2, time)) / time;
 }
 
-inline double calc_jerk(double p1, double p2, double p3, double p4, double time) {
-  return (calc_acc(p2, p3, p4, time) - calc_acc(p1, p2, p3, time)) / time;
+inline double Calc1DJerk(double p1, double p2, double p3, double p4, double time) {
+  return (Calc1DAcc(p2, p3, p4, time) - Calc1DAcc(p1, p2, p3, time)) / time;
+}
+
+inline double Calc2DVectorLen(double x1, double x2) {
+  return sqrt(x1*x1 + x2*x2);
 }
 
 // For converting back and forth between radians and degrees.
 inline constexpr double pi() { return M_PI; }
 
-inline double deg_to_rad(double x) { return x * pi() / 180; }
+inline double DegToRad(double x) { return x * pi() / 180; }
 
-inline double rad_to_deg(double x) { return x * 180 / pi(); }
+inline double RadToDeg(double x) { return x * 180 / pi(); }
 
 
-inline double distance(double x1, double y1, double x2, double y2) {
+inline double CalcDistance(double x1, double y1, double x2, double y2) {
   return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
 // Convert value in miles per hour unit to meters per second.
-inline constexpr double mph_to_mps(double mph)
+inline constexpr double MphToMps(double mph)
 {
   return mph * 0.44704;
 }
 
 // Calculate yaw rate based on the v_x and v_y velocities
-inline double calc_yaw_rad(double vx, double vy) {
+inline double CalcYawRad(double vx, double vy) {
   double v = sqrt(vx*vx + vy*vy);
   double asin_angle = asin(vy / v);
 
@@ -51,5 +58,29 @@ inline double calc_yaw_rad(double vx, double vy) {
     return pi() - asin_angle;
   }
 }
+
+inline double Calc1DPosition(double x, double v, double a, double t) {
+  return x + v*t + ((a*t)/2)*t;
+}
+
+int ClosestWaypoint(double x, double y, const std::vector<double>& maps_x, const std::vector<double>& maps_y);
+
+int NextWaypoint(double x, double y, double theta,
+                   const std::vector<double>& maps_x, const std::vector<double>& maps_y);
+
+// Transform from Cartesian x,y coordinates to Frenet s,d coordinates
+std::vector<double> GetFrenet(double x, double y, double theta, const std::vector<double>& maps_x,
+                              const std::vector<double>& maps_y);
+
+// Transform from Frenet s,d coordinates to Cartesian x,y
+std::vector<double>
+GetXY(double s, double d, const std::vector<double>& maps_s, const std::vector<double>& maps_x,
+      const std::vector<double>& maps_y);
+
+std::vector<double>
+GetXYSpline(double s, double d, const std::vector<double> &maps_s, const std::vector<double> &maps_x,
+            const std::vector<double> &maps_y);
+
+std::vector<double> GetXY(double s, double d, const PathPlannerConfig& config);
 
 #endif //PATH_PLANNING_HELPERS_HPP

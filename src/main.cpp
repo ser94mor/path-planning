@@ -1,5 +1,6 @@
+#include "helpers.hpp"
 #include "car.hpp"
-#include "state.hpp"
+#include "fsm.hpp"
 #include "path_planner.hpp"
 
 #include <fstream>
@@ -13,7 +14,7 @@
 #include <Eigen/Core>
 #include <Eigen/QR>
 #include "json.hpp"
-#include "helpers.hpp"
+
 
 
 using namespace std;
@@ -120,8 +121,8 @@ int main(int argc, char* argv[])
 
 
               // some values need to be converted into International System of Units
-              double vel_mps = mph_to_mps(car_speed);
-              double yaw_rad = deg_to_rad(car_yaw);
+              double vel_mps = MphToMps(car_speed);
+              double yaw_rad = DegToRad(car_yaw);
 
               Car car = {
                 .id = -1,

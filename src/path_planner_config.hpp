@@ -20,12 +20,13 @@ struct PathPlannerConfig {
   size_t num_lanes;
   double lane_width_m;
   double max_s_m;
+  double behavior_planning_time_horizon;
 
-  std::vector<double> map_waypoints_x_m;
-  std::vector<double> map_waypoints_y_m;
-  std::vector<double> map_waypoints_s_m;
-  std::vector<double> map_waypoints_dx_m;
-  std::vector<double> map_waypoints_dy_m;
+  std::vector<double> map_wps_x_m;
+  std::vector<double> map_wps_y_m;
+  std::vector<double> map_wps_s_m;
+  std::vector<double> map_wps_dx_m;
+  std::vector<double> map_wps_dy_m;
 
   static PathPlannerConfig FromFile(const char *pp_file, const char *map_file);
 };

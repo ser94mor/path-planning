@@ -18,7 +18,8 @@ public:
 
   void Update(const std::vector< std::vector<double> >& sensor_fusion);
 
-  const std::vector<Car>& GetCars();
+  std::vector<Car> GetCars();
+  std::pair< uint64_t, std::vector<Car> > GetUpdateCntCarsPair();
 
   virtual ~LocalizationLayer();
 
@@ -26,6 +27,7 @@ private:
   std::vector< std::vector<double> > sensor_fusion_;
   std::vector<Car> cars_;
   bool cars_updated_;
+  uint64_t update_cnt_;
 };
 
 
