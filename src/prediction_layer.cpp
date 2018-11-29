@@ -20,13 +20,9 @@ std::pair<Car, Car> PredictionLayer::GetPredictionForCar(const Car& car, double 
   double s_prev = Calc1DPosition(car.s_m, car.vel_mps, 0.0, t - path_planner_config_.frequency_s);
   double d = car.d_m;
 
-  auto pos_2d = GetXY(s, d, path_planner_config_.map_wps_s_m,
-                            path_planner_config_.map_wps_x_m,
-                            path_planner_config_.map_wps_y_m);
+  auto pos_2d = GetXY(s, d, path_planner_config_);
 
-  auto pos_2d_prev = GetXY(s_prev, d, path_planner_config_.map_wps_s_m,
-                                      path_planner_config_.map_wps_x_m,
-                                      path_planner_config_.map_wps_y_m);
+  auto pos_2d_prev = GetXY(s_prev, d, path_planner_config_);
 
   double x = pos_2d[0];
   double y = pos_2d[1];
@@ -37,21 +33,31 @@ std::pair<Car, Car> PredictionLayer::GetPredictionForCar(const Car& car, double 
 
   double yaw = CalcYawRad(vel_x, vel_y);
 
+  auto frenet_speed = GetFrenetSpeed(s, d, x, y, vel_x, vel_y, path_planner_config_);
+  double vel_s = frenet_speed[0];
+  double vel_d = frenet_speed[1];
+
   return
     {
       car,
       {
         .id        = car.id,
         .state     = car.state,
+        .vel_mps   = vel,
+        .yaw_rad   = yaw,
         .x_m       = x,
         .y_m       = y,
-        .s_m       = s,
-        .d_m       = d,
-        .vel_mps   = vel,
         .vel_x_mps = vel_x,
         .vel_y_mps = vel_y,
-        .yaw_rad   = yaw,
-      }
+        .acc_x_mps2 = 0.0,
+        .acc_y_mps2 = 0.0,
+        .s_m       = s,
+        .d_m       = d,
+        .vel_s_mps = vel_s,
+        .vel_d_mps = vel_d,
+        .acc_s_mps2 = 0.0,
+        .acc_d_mps2 = 0.0,
+      },
     };
 }
 

@@ -63,24 +63,16 @@ inline double Calc1DPosition(double x, double v, double a, double t) {
   return x + v*t + ((a*t)/2)*t;
 }
 
-int ClosestWaypoint(double x, double y, const std::vector<double>& maps_x, const std::vector<double>& maps_y);
+int ClosestWaypoint(double x, double y, const PathPlannerConfig& config);
 
-int NextWaypoint(double x, double y, double theta,
-                   const std::vector<double>& maps_x, const std::vector<double>& maps_y);
+int NextWaypoint(double x, double y, double vx, double vy, const PathPlannerConfig& config);
 
-// Transform from Cartesian x,y coordinates to Frenet s,d coordinates
-std::vector<double> GetFrenet(double x, double y, double theta, const std::vector<double>& maps_x,
-                              const std::vector<double>& maps_y);
-
-// Transform from Frenet s,d coordinates to Cartesian x,y
-std::vector<double>
-GetXY(double s, double d, const std::vector<double>& maps_s, const std::vector<double>& maps_x,
-      const std::vector<double>& maps_y);
-
-std::vector<double>
-GetXYSpline(double s, double d, const std::vector<double> &maps_s, const std::vector<double> &maps_x,
-            const std::vector<double> &maps_y);
+std::vector<double> GetFrenet(double x, double y, double vx, double vy, const PathPlannerConfig& config);
 
 std::vector<double> GetXY(double s, double d, const PathPlannerConfig& config);
+
+std::vector<double> GetFrenetSpeed(double s, double d, double x, double y, double vel_x, double vel_y,
+                                   const PathPlannerConfig& config);
+
 
 #endif //PATH_PLANNING_HELPERS_HPP

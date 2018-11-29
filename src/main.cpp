@@ -124,17 +124,32 @@ int main(int argc, char* argv[])
               double vel_mps = MphToMps(car_speed);
               double yaw_rad = DegToRad(car_yaw);
 
+              double vel_x_mps = vel_mps * cos(yaw_rad);
+              double vel_y_mps = vel_mps * sin(yaw_rad);
+
+              auto frenet_vel = GetFrenetSpeed(car_s, car_d, car_x, car_y, vel_x_mps, vel_y_mps,
+                                               path_planner.GetPathPlannerConfig());
+              double vel_s = frenet_vel[0];
+              double vel_d = frenet_vel[1];
+
               Car car = {
                 .id = -1,
                 .state = State::KeepLane,
+                .vel_mps = vel_mps,
+                .yaw_rad = yaw_rad,
                 .x_m = car_x,
                 .y_m = car_y,
+                .vel_x_mps = vel_x_mps,
+                .vel_y_mps = vel_y_mps,
+                .acc_x_mps2 = 0.0,    // unknown here; 0.0 only for the first time, when car is not moving
+                .acc_y_mps2 = 0.0,    //
                 .s_m = car_s,
                 .d_m = car_d,
-                .vel_mps = vel_mps,
-                .vel_x_mps = vel_mps * cos(yaw_rad),
-                .vel_y_mps = vel_mps * sin(yaw_rad),
-                .yaw_rad = yaw_rad,
+                .vel_s_mps = vel_s,
+                .vel_d_mps = vel_d,
+                .acc_s_mps2 = 0.0,      // unknown here; 0.0 only for the first time, when car is not moving
+                .acc_d_mps2 = 0.0,      //
+
               };
               
               std::cout << "\n\n" << car << "\n" << std::endl;

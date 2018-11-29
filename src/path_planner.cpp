@@ -47,6 +47,11 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
   assert( prev_path_x.size() == prev_path_y.size() );
 
   static uint64_t invocation_counter = 0;
+  if (invocation_counter == 0) {
+    prev_s_m_ = car.s_m;
+    prev_d_m_ = car.d_m;
+    prev_speed_mps_ = car.vel_s_mps;
+  }
 
   std::cout << "===" << ++invocation_counter << "===\n";
 
@@ -71,10 +76,16 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
 
     s += speed_s * config_.frequency_s;
 
-    std::vector<double> coords = GetXY(s, d, config_.map_wps_s_m, config_.map_wps_x_m, config_.map_wps_y_m);
+    if (s > config_.max_s_m) {
+      s -= config_.max_s_m;
+    }
+
+    std::vector<double> coords = GetXY(s, d, config_);
 
     next_coords_[0][i] = coords[0];
     next_coords_[1][i] = coords[1];
+
+    //GetFrenet(coords[0], coords[1], config_);
 
     prev_acc_mps2_ = acc_s;
     prev_speed_mps_ = speed_s;
@@ -117,4 +128,8 @@ PathPlanner::PathPlanner(PathPlannerConfig path_config, PIDControllerConfig pid_
             << "|||||||||||||||||||||||||||||||||||||||||||||\n"
             << std::endl;
 
+}
+
+const PathPlannerConfig& PathPlanner::GetPathPlannerConfig() const {
+  return config_;
 }

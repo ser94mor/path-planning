@@ -17,18 +17,25 @@
 struct Car {
   int    id;
   State  state;
+
+  double vel_mps;
+  double yaw_rad;
+
   double x_m;
   double y_m;
-  double s_m;
-  double d_m;
-  double vel_mps;
   double vel_x_mps;
   double vel_y_mps;
-  double yaw_rad;
+  double acc_x_mps2;
+  double acc_y_mps2;
+
+  double s_m;
+  double d_m;
+  double vel_s_mps;
+  double vel_d_mps;
   double acc_s_mps2;
   double acc_d_mps2;
 
-  static Car FromVector(const std::vector<double>& car_info);
+  static Car FromVector(const std::vector<double>& car_info, const PathPlannerConfig& config);
 };
 
 inline std::ostream& operator<<(std::ostream& ostream, const Car& car) {
@@ -36,14 +43,18 @@ inline std::ostream& operator<<(std::ostream& ostream, const Car& car) {
           << "Car{\n"
           << "  .id         = " << car.id         << ",\n"
           << "  .state      = " << car.state      << ",\n"
+          << "  .vel_mps    = " << car.vel_mps    << ",\n"
+          << "  .yaw_rad    = " << car.yaw_rad    << ",\n"
           << "  .x_m        = " << car.x_m        << ",\n"
           << "  .y_m        = " << car.y_m        << ",\n"
-          << "  .s_m        = " << car.s_m        << ",\n"
-          << "  .d_m        = " << car.d_m        << ",\n"
-          << "  .vel_mps    = " << car.vel_mps    << ",\n"
           << "  .vel_x_mps  = " << car.vel_x_mps  << ",\n"
           << "  .vel_y_mps  = " << car.vel_y_mps  << ",\n"
-          << "  .yaw_rad    = " << car.yaw_rad    << ",\n"
+          << "  .acc_x_mps2 = " << car.acc_x_mps2 << ",\n"
+          << "  .acc_y_mps2 = " << car.acc_y_mps2 << ",\n"
+          << "  .s_m        = " << car.s_m        << ",\n"
+          << "  .d_m        = " << car.d_m        << ",\n"
+          << "  .vel_s_mps  = " << car.vel_s_mps  << ",\n"
+          << "  .vel_d_mps  = " << car.vel_d_mps  << ",\n"
           << "  .acc_s_mps2 = " << car.acc_s_mps2 << ",\n"
           << "  .acc_d_mps2 = " << car.acc_d_mps2 << ",\n"
           << "}";

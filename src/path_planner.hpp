@@ -27,6 +27,8 @@ public:
                                                               std::vector<double>& prev_path_x_m,
                                                               std::vector<double>& prev_path_y_m,
                                                               std::vector< std::vector<double> >& sensor_fusion);
+  
+  const PathPlannerConfig& GetPathPlannerConfig() const;
 
 private:
 

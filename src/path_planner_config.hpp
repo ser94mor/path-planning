@@ -7,6 +7,8 @@
 
 #include <vector>
 #include <cstdlib>
+#include <spline.h>
+
 
 struct PathPlannerConfig {
   double frequency_s;
@@ -20,7 +22,7 @@ struct PathPlannerConfig {
   size_t num_lanes;
   double lane_width_m;
   double max_s_m;
-  double behavior_planning_time_horizon;
+  double behavior_planning_time_horizon_s;
 
   std::vector<double> map_wps_x_m;
   std::vector<double> map_wps_y_m;
@@ -28,7 +30,19 @@ struct PathPlannerConfig {
   std::vector<double> map_wps_dx_m;
   std::vector<double> map_wps_dy_m;
 
+  tk::spline spline_s_x;
+  tk::spline spline_s_y;
+  tk::spline spline_s_dx;
+  tk::spline spline_s_dy;
+
+  void InitSplines();
+
   static PathPlannerConfig FromFile(const char *pp_file, const char *map_file);
+
+private:
+
+  static std::vector<double> PrepareSPointsForSpline(double max_s, const std::vector<double>& map_wps_s);
+  static std::vector<double> PrepareCartesianCoordinateForSpline(const std::vector<double>& map_wps_coord);
 };
 
 #endif //PATH_PLANNING_PATH_PLANNER_CONFIG_HPP

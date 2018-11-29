@@ -14,7 +14,7 @@
 class LocalizationLayer {
 
 public:
-  LocalizationLayer();
+  LocalizationLayer(const PathPlannerConfig& config);
 
   void Update(const std::vector< std::vector<double> >& sensor_fusion);
 
@@ -24,6 +24,7 @@ public:
   virtual ~LocalizationLayer();
 
 private:
+  const PathPlannerConfig& path_planner_config_;
   std::vector< std::vector<double> > sensor_fusion_;
   std::vector<Car> cars_;
   bool cars_updated_;

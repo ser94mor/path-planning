@@ -14,18 +14,18 @@ TEST_CASE("PathPlannerConfig::FromFile", "[path_planner_config]") {
   TempFile pp_temp{};
   pp_temp.GetOfstream()
               << "{\n"
-                 "  \"frequency_s\"                    :      0.020,\n"
-                 "  \"min_speed_mph\"                  :      0.000,\n"
-                 "  \"max_speed_mph\"                  :     49.000,\n"
-                 "  \"min_acc_mps2\"                   :    -10.000,\n"
-                 "  \"max_acc_mps2\"                   :     10.000,\n"
-                 "  \"min_jerk_mps3\"                  :    -10.000,\n"
-                 "  \"max_jerk_mps3\"                  :     10.000,\n"
-                 "  \"path_len\"                       :         50,\n"
-                 "  \"num_lanes\"                      :          3,\n"
-                 "  \"lane_width_m\"                   :      4.000,\n"
-                 "  \"max_s_m\"                        :   6945.554,\n"
-                 "  \"behavior_planning_time_horizon\" :          3\n"
+                 "  \"frequency_s\"                      :      0.020,\n"
+                 "  \"min_speed_mph\"                    :      0.000,\n"
+                 "  \"max_speed_mph\"                    :     49.000,\n"
+                 "  \"min_acc_mps2\"                     :    -10.000,\n"
+                 "  \"max_acc_mps2\"                     :     10.000,\n"
+                 "  \"min_jerk_mps3\"                    :    -10.000,\n"
+                 "  \"max_jerk_mps3\"                    :     10.000,\n"
+                 "  \"path_len\"                         :         50,\n"
+                 "  \"num_lanes\"                        :          3,\n"
+                 "  \"lane_width_m\"                     :      4.000,\n"
+                 "  \"max_s_m\"                          :   6945.554,\n"
+                 "  \"behavior_planning_time_horizon_s\" :        3.0\n"
                  "}";
   pp_temp.GetOfstream().flush();
 
