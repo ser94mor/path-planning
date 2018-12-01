@@ -36,3 +36,33 @@ Car Car::FromVector(const std::vector<double>& car_info, const PathPlannerConfig
       .acc_d_mps2 = 0.0,
   };
 }
+
+double FrenetCar::GetVelocity() const {
+  return sqrt( this->vel_s_mps * this->vel_s_mps + this->vel_d_mps * this->vel_d_mps );
+}
+
+double CartesianCar::GetVelocity() const {
+  return sqrt( this->vel_x_mps * this->vel_x_mps + this->vel_y_mps * this->vel_y_mps );
+}
+
+double CartesianCar::GetYaw() const {
+  return CalcYawRad(this->vel_x_mps, this->vel_y_mps);
+}
+
+FrenetCar
+FrenetCar::FromVectorAssumingConstantVelocityAndLaneKeeping(const std::vector<double>& car_info,
+                                                            const PathPlannerConfig& config)
+{
+  double velocity = CalcAbsVelocity(car_info[3], car_info[4]);
+  return {
+      .id = static_cast<int>(car_info[0]),
+      .state = State::KeepLane,
+      .vel_mps = velocity,
+      .s_m = car_info[5],
+      .d_m = car_info[6],
+      .vel_s_mps = velocity,  // lane keeping
+      .vel_d_mps = 0.0,       //
+      .acc_s_mps2 = 0.0,      // constant velocity
+      .acc_d_mps2 = 0.0,      //
+  };
+}

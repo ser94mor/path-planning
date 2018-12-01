@@ -15,17 +15,18 @@ class BehaviorLayer {
 public:
 
   BehaviorLayer(const PathPlannerConfig& path_planner_config,
-                PredictionLayer& prediction_layer,
-                LocalizationLayer& localization_layer);
+                LocalizationLayer& localization_layer,
+                PredictionLayer& prediction_layer);
 
   virtual ~BehaviorLayer();
 
-  Car Plan(const Car& current_car);
+  FrenetCar Plan(const FrenetCar& current_car);
 
 private:
+
   const PathPlannerConfig& path_planner_config_;
-  PredictionLayer&         prediction_layer_;
   LocalizationLayer&       localization_layer_;
+  PredictionLayer&         prediction_layer_;
 };
 
 

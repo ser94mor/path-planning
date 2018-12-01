@@ -2,13 +2,13 @@
   "frequency_s"                      :      0.020,
   "min_speed_mph"                    :      0.000,
   "max_speed_mph"                    :     47.500,
-  "min_acc_mps2"                     :    -10.000,
-  "max_acc_mps2"                     :     10.000,
-  "min_jerk_mps3"                    :    -10.000,
-  "max_jerk_mps3"                    :     10.000,
+  "min_acc_mps2"                     :     -9.500,
+  "max_acc_mps2"                     :      9.500,
+  "min_jerk_mps3"                    :     -9.500,
+  "max_jerk_mps3"                    :      9.500,
   "path_len"                         :        100,
   "num_lanes"                        :          3,
   "lane_width_m"                     :      4.000,
   "max_s_m"                          :   6945.554,
-  "behavior_planning_time_horizon_s" :        3.0
+  "behavior_planning_time_horizon_s" :        2.0
 }

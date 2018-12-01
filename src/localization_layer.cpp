@@ -6,7 +6,9 @@
 
 LocalizationLayer::LocalizationLayer(const PathPlannerConfig& config):
     path_planner_config_{config}, sensor_fusion_{0}, cars_{sensor_fusion_.size()}, cars_updated_{false}, update_cnt_{0}
-{}
+{
+
+}
 
 LocalizationLayer::~LocalizationLayer() = default;
 
@@ -15,15 +17,15 @@ void LocalizationLayer::Update(const std::vector< std::vector<double> >& sensor_
   cars_updated_ = false;
 }
 
-std::vector<Car> LocalizationLayer::GetCars() {
-  return GetUpdateCntCarsPair().second;
+std::vector<FrenetCar> LocalizationLayer::GetFrenetCars() {
+  return GetUpdateCntFrenetCarsPair().second;
 }
 
-std::pair<uint64_t, std::vector<Car>> LocalizationLayer::GetUpdateCntCarsPair() {
+std::pair< uint64_t, std::vector<FrenetCar> > LocalizationLayer::GetUpdateCntFrenetCarsPair() {
   if (not cars_updated_) {
     cars_.resize(sensor_fusion_.size());
     for (int i = 0; i < sensor_fusion_.size(); ++i) {
-      cars_[i] = Car::FromVector(sensor_fusion_[i], path_planner_config_);
+      cars_[i] = FrenetCar::FromVectorAssumingConstantVelocityAndLaneKeeping(sensor_fusion_[i], path_planner_config_);
     }
     ++update_cnt_;
   }

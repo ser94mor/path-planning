@@ -1,7 +1,7 @@
 {
-  "Kp_initial": 0.2,
+  "Kp_initial": 2.27456,
   "Ki_initial": 0.0,
-  "Kd_initial": 3.0,
+  "Kd_initial": 3.35,
   "twiddle_dKp_initial": 0.0,
   "twiddle_dKi_initial": 0.0,
   "twiddle_dKd_initial": 0.0,

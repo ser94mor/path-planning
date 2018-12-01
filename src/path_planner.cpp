@@ -7,6 +7,9 @@
 #include "car.hpp"
 #include "helpers.hpp"
 #include "path_planner.hpp"
+#include "behavior_layer.hpp"
+#include "localization_layer.hpp"
+#include "prediction_layer.hpp"
 
 #include <cmath>
 #include <cassert>
@@ -39,21 +42,23 @@ std::vector<double> PathPlanner::GetPrevXY(Car& car,
   }
 }
 
-std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
-                                                                      std::vector<double> &prev_path_x,
-                                                                      std::vector<double> &prev_path_y,
-                                                                      std::vector< std::vector<double> > &sensor_fusion)
+std::vector< std::vector<double> >&
+PathPlanner::GetNextXYTrajectories(const Car& car,
+                                   const std::vector<double>& prev_path_x,
+                                   const std::vector<double>& prev_path_y,
+                                   const std::vector< std::vector<double> >& sensor_fusion)
 {
   assert( prev_path_x.size() == prev_path_y.size() );
 
   static uint64_t invocation_counter = 0;
   if (invocation_counter == 0) {
-    prev_s_m_ = car.s_m;
-    prev_d_m_ = car.d_m;
-    prev_speed_mps_ = car.vel_s_mps;
+    prev_car_ = car;
   }
 
   std::cout << "===" << ++invocation_counter << "===\n";
+
+  // update the list of characteristics of other cars
+  localization_layer_.Update(sensor_fusion);
 
   auto prev_path_size = prev_path_x.size();
 
@@ -63,34 +68,22 @@ std::vector<std::vector<double> > &PathPlanner::GetNextXYTrajectories(Car &car,
     next_coords_[1][i] = prev_path_y[i];
   }
 
-  double s = prev_s_m_;
-  double d = prev_d_m_;
-  double speed_s = prev_speed_mps_;
-  double acc_s   = prev_acc_mps2_;
-  double jerk_s  = config_.max_jerk_mps3;
-  double target_speed_s = config_.max_speed_mps;
-
   for (auto i = prev_path_size; i < config_.path_len; i++) {
 
-    speed_s = speed_ctrl_.GetVelocity(target_speed_s, speed_s, config_.frequency_s);
+//    trajectory_layer_.GetJerkMinimizingTrajectory();
 
-    s += speed_s * config_.frequency_s;
+    prev_car_.vel_s_mps = speed_ctrl_.GetVelocity(config_.max_speed_mps, prev_car_.vel_s_mps, config_.frequency_s);
 
-    if (s > config_.max_s_m) {
-      s -= config_.max_s_m;
+    prev_car_.s_m += prev_car_.vel_s_mps * config_.frequency_s;
+
+    if (prev_car_.s_m > config_.max_s_m) {
+      prev_car_.s_m -= config_.max_s_m;
     }
 
-    std::vector<double> coords = GetXY(s, d, config_);
+    std::vector<double> coords = GetXY(prev_car_.s_m, prev_car_.d_m, config_);
 
     next_coords_[0][i] = coords[0];
     next_coords_[1][i] = coords[1];
-
-    //GetFrenet(coords[0], coords[1], config_);
-
-    prev_acc_mps2_ = acc_s;
-    prev_speed_mps_ = speed_s;
-    prev_s_m_ = s;
-    prev_d_m_ = d;
   }
 
   invoked_ = true;
@@ -105,13 +98,13 @@ PathPlanner::PathPlanner(PathPlannerConfig path_config, PIDControllerConfig pid_
                          config_{std::move(path_config)},
                          next_coords_{2, std::vector<double>(config_.path_len)},
                          invoked_{false},
-                         target_speed_mps_{config_.max_speed_mps},
-                         prev_acc_mps2_{0.0},
-                         prev_s_m_{0.0},
-                         prev_d_m_{config_.lane_width_m * 1.5},
-                         prev_speed_mps_{0.0},
+                         prev_car_{},
                          speed_ctrl_{config_.max_speed_mps, 0, config_.max_acc_mps2, -config_.max_acc_mps2,
-                                     config_.max_jerk_mps3, -config_.max_jerk_mps3, pid_config}
+                                     config_.max_jerk_mps3, -config_.max_jerk_mps3, pid_config},
+                         localization_layer_{config_},
+                         prediction_layer_{config_, localization_layer_},
+                         behavior_layer_{config_, localization_layer_, prediction_layer_},
+                         trajectory_layer_{config_, localization_layer_, prediction_layer_, behavior_layer_}
 {
 
   std::cout << "|||||||||||||||||||||||||||||||||||||||||||||\n"
@@ -123,8 +116,6 @@ PathPlanner::PathPlanner(PathPlannerConfig path_config, PIDControllerConfig pid_
             << "|| path length          : " << std::setw(10) << config_.path_len      << " -     ||\n"
             << "|| number of lanes      : " << std::setw(10) << config_.num_lanes     << " -     ||\n"
             << "|| lane width           : " << std::setw(10) << config_.lane_width_m  << " m     ||\n"
-            << "|| start speed          : " << std::setw(10) << prev_speed_mps_       << " m/s   ||\n"
-            << "|| start acceleration   : " << std::setw(10) << prev_acc_mps2_        << " m/s^2 ||\n"
             << "|||||||||||||||||||||||||||||||||||||||||||||\n"
             << std::endl;
 

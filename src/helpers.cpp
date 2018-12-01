@@ -104,6 +104,19 @@ std::vector<double> GetXY(double s, double d, const PathPlannerConfig& config)
   return { x, y };
 }
 
+std::vector<double> GetVxVy(double s, double d, double vs, double vd, const PathPlannerConfig& config)
+{
+  const double t = config.frequency_s;
+
+  auto cur_coords = GetXY(s,d, config);
+  auto future_coords = GetXY(s + vs * t, d + vd * t, config);
+
+  double vx = Calc1DSpeed(cur_coords[0], future_coords[0], t);
+  double vy = Calc1DSpeed(cur_coords[1], future_coords[1], t);
+
+  return { vx, vy };
+}
+
 std::vector<double> GetFrenetSpeed(double s, double d, double x, double y, double vel_x, double vel_y,
                                    const PathPlannerConfig& config)
 {

@@ -13,31 +13,18 @@
 class TempFile {
 public:
 
-  TempFile() {
-    name = strdup("/tmp/path_plannerXXXXXX");
-    fd = mkstemp(name);
-    ofstream.open(name);
-  }
+  TempFile();
 
-  virtual ~TempFile() {
-    ofstream.close();
-    close(fd);
-    remove(name);
-    delete name;
-  }
+  virtual ~TempFile();
 
-  std::ofstream &GetOfstream() {
-    return ofstream;
-  }
+  std::ofstream& GetOfstream();
 
-  const char* GetName() {
-    return name;
-  }
+  const char* GetName();
 
 private:
-  char* name;
-  int fd;
-  std::ofstream ofstream;
+  char* name_;
+  int fd_;
+  std::ofstream ofstream_;
 };
 
 

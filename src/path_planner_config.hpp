@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <cstdlib>
-#include <spline.h>
+#include <spline.hpp>
 
 
 struct PathPlannerConfig {

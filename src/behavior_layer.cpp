@@ -5,60 +5,45 @@
 #include "behavior_layer.hpp"
 
 BehaviorLayer::BehaviorLayer(const PathPlannerConfig& path_planner_config,
-                             PredictionLayer& prediction_layer,
-                             LocalizationLayer& localization_layer):
+                             LocalizationLayer& localization_layer,
+                             PredictionLayer& prediction_layer):
   path_planner_config_{path_planner_config},
-  prediction_layer_{prediction_layer},
-  localization_layer_{localization_layer}
+  localization_layer_{localization_layer},
+  prediction_layer_{prediction_layer}
 {
 
 }
 
-Car BehaviorLayer::Plan(const Car& current_car) {
+FrenetCar BehaviorLayer::Plan(const FrenetCar& current_car)
+{
   auto predictions = prediction_layer_.GetPredictions(path_planner_config_.behavior_planning_time_horizon_s);
 
   const auto& possible_next_states = FSM::GetPossibleNextStates(current_car.state);
 
   double t = path_planner_config_.behavior_planning_time_horizon_s;
-  double vel = path_planner_config_.max_speed_mps;
+  double t_diff = path_planner_config_.frequency_s;
 
-  double s = Calc1DPosition(current_car.s_m, vel, 0.0, t);
-  double s_prev = Calc1DPosition(current_car.s_m, vel, 0.0, t - path_planner_config_.frequency_s);
-  double d = current_car.d_m;
+  double s = Calc1DPosition(current_car.s_m, current_car.vel_s_mps, current_car.acc_s_mps2, t);
+  double s_prev = Calc1DPosition(current_car.s_m, current_car.vel_s_mps, current_car.acc_s_mps2, t - t_diff);
 
-  auto pos_2d = GetXY(s, d, path_planner_config_);
+  double d = Calc1DPosition(current_car.d_m, current_car.vel_d_mps, current_car.acc_d_mps2, t);
+  double d_prev = Calc1DPosition(current_car.d_m, current_car.vel_d_mps, current_car.acc_d_mps2, t - t_diff);
 
-  auto pos_2d_prev = GetXY(s_prev, d, path_planner_config_);
+  double vs = Calc1DSpeed(s_prev, s, t_diff);
+  double vd = Calc1DSpeed(d_prev, d, t_diff);
 
-  double x = pos_2d[0];
-  double y = pos_2d[1];
-
-  double vel_x = Calc1DSpeed(pos_2d_prev[0], x, path_planner_config_.frequency_s);
-  double vel_y = Calc1DSpeed(pos_2d_prev[1], y, path_planner_config_.frequency_s);
-
-  double yaw = CalcYawRad(vel_x, vel_y);
-
-  auto frenet_speed = GetFrenetSpeed(s, d, x, y, vel_x, vel_y, path_planner_config_);
-  double vel_s = frenet_speed[0];
-  double vel_d = frenet_speed[1];
+  double velocity = CalcAbsVelocity(vs, vd);
 
   return {
       .id = current_car.id,
       .state = current_car.state,
-      .vel_mps = vel,
-      .yaw_rad = yaw,
-      .x_m = x,
-      .y_m = y,
-      .vel_x_mps = vel_x,
-      .vel_y_mps = vel_y,
-      .acc_x_mps2 = 0.0,
-      .acc_y_mps2 = 0.0,
+      .vel_mps = velocity,
       .s_m = s,
       .d_m = d,
-      .vel_s_mps = vel_s,
-      .vel_d_mps = vel_d,
-      .acc_s_mps2 = 0.0,
-      .acc_d_mps2 = 0.0,
+      .vel_s_mps = vs,
+      .vel_d_mps = vd,
+      .acc_s_mps2 = current_car.acc_s_mps2,
+      .acc_d_mps2 = current_car.acc_d_mps2,
   };
 }
 

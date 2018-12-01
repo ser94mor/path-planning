@@ -9,7 +9,6 @@
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-TrajectoryLayer::TrajectoryLayer() {}
 
 std::vector<double>
 TrajectoryLayer::GetJerkMinimizingTrajectory(std::vector<double> start, std::vector<double> end, double t) {
@@ -60,5 +59,20 @@ TrajectoryLayer::GetJerkMinimizingTrajectory(std::vector<double> start, std::vec
   return result;
 
 }
+
+TrajectoryLayer::TrajectoryLayer(const PathPlannerConfig& config, LocalizationLayer& localization_layer,
+                                 PredictionLayer& prediction_layer, BehaviorLayer& behavior_layer):
+  path_planner_config_{config},
+  localization_layer_{localization_layer},
+  prediction_layer_{prediction_layer},
+  behavior_layer_{behavior_layer}
+{
+
+}
+
+std::vector< std::vector<double> > TrajectoryLayer::GetTrajectory(const FrenetCar& car) const {
+  return std::vector<std::vector<double>>();
+}
+
 
 TrajectoryLayer::~TrajectoryLayer() = default;

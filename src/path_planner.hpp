@@ -8,6 +8,10 @@
 #include "car.hpp"
 #include "speed_controller.hpp"
 #include "path_planner_config.hpp"
+#include "trajectory_layer.hpp"
+#include "localization_layer.hpp"
+#include "prediction_layer.hpp"
+#include "behavior_layer.hpp"
 
 #include <vector>
 
@@ -23,10 +27,10 @@ public:
    * Generate X and Y tracks for the car, that is, plan its path.
    * @return vector containing 2 vectors with X and Y coordinates correspondingly
    */
-  std::vector< std::vector< double > >& GetNextXYTrajectories(Car& car,
-                                                              std::vector<double>& prev_path_x_m,
-                                                              std::vector<double>& prev_path_y_m,
-                                                              std::vector< std::vector<double> >& sensor_fusion);
+  std::vector< std::vector< double > >& GetNextXYTrajectories(const Car& car,
+                                                              const std::vector<double>& prev_path_x_m,
+                                                              const std::vector<double>& prev_path_y_m,
+                                                              const std::vector< std::vector<double> >& sensor_fusion);
   
   const PathPlannerConfig& GetPathPlannerConfig() const;
 
@@ -40,12 +44,13 @@ private:
   PathPlannerConfig config_;
   std::vector< std::vector<double> > next_coords_;
   bool invoked_;
-  double target_speed_mps_;
-  double prev_acc_mps2_;
-  double prev_s_m_;
-  double prev_d_m_;
-  double prev_speed_mps_;
+  Car prev_car_;
   SpeedController speed_ctrl_;
+
+  LocalizationLayer localization_layer_;
+  PredictionLayer prediction_layer_;
+  BehaviorLayer behavior_layer_;
+  TrajectoryLayer trajectory_layer_;
 
 };
 

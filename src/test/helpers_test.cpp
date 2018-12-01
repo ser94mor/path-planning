@@ -6,6 +6,8 @@
 
 #include "helpers.hpp"
 
+#include <spline.hpp>
+
 
 TEST_CASE("GetXY", "[helpers]")
 {

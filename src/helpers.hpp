@@ -11,31 +11,48 @@
 #include <cstdint>
 #include <vector>
 
-inline double Calc1DSpeed(double p1, double p2, double time) {
+
+inline double Calc1DSpeed(double p1, double p2, double time)
+{
   return (p2 - p1) / time;
 }
+
 
 inline double Calc1DAcc(double p1, double p2, double p3, double time) {
   return (Calc1DSpeed(p2, p3, time) - Calc1DSpeed(p1, p2, time)) / time;
 }
 
-inline double Calc1DJerk(double p1, double p2, double p3, double p4, double time) {
+
+inline double Calc1DJerk(double p1, double p2, double p3, double p4, double time)
+{
   return (Calc1DAcc(p2, p3, p4, time) - Calc1DAcc(p1, p2, p3, time)) / time;
 }
 
-inline double Calc2DVectorLen(double x1, double x2) {
+
+inline double Calc2DVectorLen(double x1, double x2)
+{
   return sqrt(x1*x1 + x2*x2);
 }
+
+
+inline double CalcAbsVelocity(double vx, double vy)
+{
+  return Calc2DVectorLen(vx, vy);
+}
+
 
 // For converting back and forth between radians and degrees.
 inline constexpr double pi() { return M_PI; }
 
+
 inline double DegToRad(double x) { return x * pi() / 180; }
+
 
 inline double RadToDeg(double x) { return x * 180 / pi(); }
 
 
-inline double CalcDistance(double x1, double y1, double x2, double y2) {
+inline double CalcDistance(double x1, double y1, double x2, double y2)
+{
   return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
@@ -46,7 +63,8 @@ inline constexpr double MphToMps(double mph)
 }
 
 // Calculate yaw rate based on the v_x and v_y velocities
-inline double CalcYawRad(double vx, double vy) {
+inline double CalcYawRad(double vx, double vy)
+{
   double v = sqrt(vx*vx + vy*vy);
   double asin_angle = asin(vy / v);
 
@@ -59,7 +77,8 @@ inline double CalcYawRad(double vx, double vy) {
   }
 }
 
-inline double Calc1DPosition(double x, double v, double a, double t) {
+inline double Calc1DPosition(double x, double v, double a, double t)
+{
   return x + v*t + ((a*t)/2)*t;
 }
 
@@ -70,6 +89,8 @@ int NextWaypoint(double x, double y, double vx, double vy, const PathPlannerConf
 std::vector<double> GetFrenet(double x, double y, double vx, double vy, const PathPlannerConfig& config);
 
 std::vector<double> GetXY(double s, double d, const PathPlannerConfig& config);
+
+std::vector<double> GetVxVy(double s, double d, double vs, double vd, const PathPlannerConfig& config);
 
 std::vector<double> GetFrenetSpeed(double s, double d, double x, double y, double vel_x, double vel_y,
                                    const PathPlannerConfig& config);
