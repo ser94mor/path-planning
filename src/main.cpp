@@ -68,14 +68,18 @@ int main(int argc, char* argv[])
   // read configuration files
   //////
   PathPlannerConfig path_planner_config = PathPlannerConfig::FromFile(path_planner_config_file, highway_map_file);
+  circular_unsigned_double_t::SetGlobalMaxValue(path_planner_config.max_s_m);
+  FrenetCar::SetPathPlannerConfig(&path_planner_config);
+
   PIDControllerConfig pid_controller_config = PIDControllerConfig::FromFile(pid_controller_config_file);
 
   uWS::Hub h;
 
   PathPlanner path_planner(path_planner_config, pid_controller_config);
+  double global_time_s = 0.0;
 
   h.onMessage(
-      [&path_planner](
+      [&path_planner, &global_time_s](
           uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
           uWS::OpCode opCode)
       {
@@ -132,29 +136,21 @@ int main(int argc, char* argv[])
               double vel_s = frenet_vel[0];
               double vel_d = frenet_vel[1];
 
-              Car car = {
+              FrenetCar car = {
                 .id = -1,
                 .state = State::KeepLane,
                 .vel_mps = vel_mps,
-                .yaw_rad = yaw_rad,
-                .x_m = car_x,
-                .y_m = car_y,
-                .vel_x_mps = vel_x_mps,
-                .vel_y_mps = vel_y_mps,
-                .acc_x_mps2 = 0.0,    // unknown here; 0.0 only for the first time, when car is not moving
-                .acc_y_mps2 = 0.0,    //
                 .s_m = car_s,
                 .d_m = car_d,
-                .vel_s_mps = vel_s,
-                .vel_d_mps = vel_d,
+                .vel_s_mps = 0.0,       // unknown here; 0.0 only for the first time, when car is not moving
+                .vel_d_mps = 0.0,       //
                 .acc_s_mps2 = 0.0,      // unknown here; 0.0 only for the first time, when car is not moving
                 .acc_d_mps2 = 0.0,      //
-
               };
               
               std::cout << "\n\n" << car << "\n" << std::endl;
 
-              std::vector<std::vector<double> > next_coords =
+              std::vector< std::vector<double> > next_coords =
                   path_planner.GetNextXYTrajectories(car, previous_path_x, previous_path_y, sensor_fusion);
 
               msgJson["next_x"] = next_coords[0];
@@ -162,8 +158,9 @@ int main(int argc, char* argv[])
 
               auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
-              //this_thread::sleep_for(chrono::milliseconds(1000));
               ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+              
+              global_time_s += path_planner.GetPathPlannerConfig().frequency_s;
 
             }
           } else

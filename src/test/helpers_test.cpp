@@ -11,7 +11,7 @@
 
 TEST_CASE("GetXY", "[helpers]")
 {
-  PathPlannerConfig config = {
+  PathPlannerConfig config{
       .frequency_s = 0.020,
       .min_speed_mps = 0.000,
       .max_speed_mps = 21.905,
@@ -20,10 +20,14 @@ TEST_CASE("GetXY", "[helpers]")
       .min_jerk_mps3 = -10.000,
       .max_jerk_mps3 = 10.000,
       .path_len = 50,
+      .trajectory_layer_queue_len = 100,
       .num_lanes = 3,
       .lane_width_m = 1.000,
       .max_s_m = 4*pi(),
       .behavior_planning_time_horizon_s = 3,
+      .front_car_buffer_m = 5.0,
+      .back_car_buffer_m = 0.5,
+      .side_car_buffer_m = 1.0,
 
       // circle with the center (0,0) and the radius 2
       // angle             0           pi/8      2pi/8          3pi/8 4pi/8           5pi/8         6pi/8           7pi/8        pi           9pi/8        10pi/8          11pi/8    12pi/8          13pi/8        14pi/8          15pi/8
@@ -72,11 +76,11 @@ TEST_CASE("GetXY", "[helpers]")
 }
 
 
-TEST_CASE("Calc1DSpeed", "[helpers]")
+TEST_CASE("Calc1DVelocity", "[helpers]")
 {
-  REQUIRE( Calc1DSpeed(200.0, 100.0, 10.0) == Approx(-10.0) );
-  REQUIRE( Calc1DSpeed(100.0, 100.0, 10.0) == Approx(0.0) );
-  REQUIRE( Calc1DSpeed(100.0, 200.0, 10.0) == Approx(10.0) );
+  REQUIRE(Calc1DVelocity(200.0, 100.0, 10.0) == Approx(-10.0) );
+  REQUIRE(Calc1DVelocity(100.0, 100.0, 10.0) == Approx(0.0) );
+  REQUIRE(Calc1DVelocity(100.0, 200.0, 10.0) == Approx(10.0) );
 }
 
 TEST_CASE("Calc1DAcc", "[helpers]") {
@@ -117,4 +121,42 @@ TEST_CASE("CalcYawRad", "[helpers]") {
   REQUIRE( Approx(5 * M_PI / 3)  == CalcYawRad(1.0, -sqrt(3)) );
   REQUIRE( Approx(7 * M_PI / 6)  == CalcYawRad(-sqrt(3), -1.0) );
   REQUIRE( Approx(4 * M_PI / 3)  == CalcYawRad(-1.0, -sqrt(3)) );
+}
+
+TEST_CASE("CalcLaneNumber", "[helpers]")
+{
+  REQUIRE( -3 == CalcLaneNumber(-8.3, 3.0) );
+  REQUIRE( -2 == CalcLaneNumber(-4.0, 3.0) );
+  REQUIRE( -1 == CalcLaneNumber(-0.1, 3.0) );
+  REQUIRE(  0 == CalcLaneNumber(2.3,  3.0) );
+  REQUIRE(  1 == CalcLaneNumber(3.1,  3.0) );
+  REQUIRE(  2 == CalcLaneNumber(7.5,  3.0) );
+  REQUIRE(  3 == CalcLaneNumber(11.0, 3.0) );
+}
+
+
+TEST_CASE("map_keys", "[helpers]")
+{
+  std::map<int, double> map{
+      { 1, 1.1 },
+      { 2, 2.2 },
+      { 3, 3.3 },
+  };
+
+  REQUIRE( std::vector<int>{ 1, 2, 3 } == map_keys<int, double>(map));
+
+  REQUIRE( map_keys<int, double>({}).empty() );
+}
+
+TEST_CASE("map_vals", "[helpers]")
+{
+  std::map<int, double> map{
+      { 1, 1.1 },
+      { 2, 2.2 },
+      { 3, 3.3 },
+  };
+
+  REQUIRE( std::vector<double>{ 1.1, 2.2, 3.3 } == map_vals<int, double>(map));
+
+  REQUIRE( map_vals<int, double>({}).empty() );
 }

@@ -2,7 +2,7 @@ project(Path_Planning)
 
 cmake_minimum_required (VERSION 3.5)
 
-add_definitions(-std=c++11)
+add_definitions(-std=c++17)
 
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
@@ -48,7 +48,12 @@ set(sources src/main.cpp
             src/trajectory_layer.hpp
 
             src/helpers.cpp
-            src/helpers.hpp)
+            src/helpers.hpp
+
+            src/lrucache.hpp
+
+            src/circular_unsigned_double_t.cpp
+            src/circular_unsigned_double_t.hpp)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
@@ -63,6 +68,7 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 add_library(Catch INTERFACE)
 add_executable( path_planning_test
+        src/lrucache.hpp
         src/spline.hpp src/spline.cpp
         src/test/fsm_test.cpp src/fsm.hpp src/fsm.cpp
         src/test/helpers_test.cpp src/helpers.hpp src/helpers.cpp
@@ -72,7 +78,9 @@ add_executable( path_planning_test
         src/test/localization_layer_test.cpp src/localization_layer.cpp src/localization_layer.hpp
         src/test/behavior_layer_test.cpp src/behavior_layer.cpp src/behavior_layer.hpp
         src/test/prediction_layer_test.cpp src/prediction_layer.cpp src/prediction_layer.hpp
-        src/test/test.cpp src/test/temp_file.cpp src/test/temp_file.hpp)
+        src/test/circular_unsigned_double_t_test.cpp src/circular_unsigned_double_t.hpp src/circular_unsigned_double_t.cpp
+        src/test/temp_file.cpp src/test/temp_file.hpp
+        src/test/test.cpp)
 target_link_libraries(path_planning_test Catch)
 
 

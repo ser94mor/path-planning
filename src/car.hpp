@@ -7,28 +7,39 @@
 
 #include "fsm.hpp"
 #include "helpers.hpp"
+#include "circular_unsigned_double_t.hpp"
 
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <algorithm>
+#include <optional>
+#include <memory>
 
-struct CartesianCar;
+
 
 struct FrenetCar {
   int id;
   State state;
   double vel_mps;
+  double time_s;
 
-  double s_m;
+  circular_unsigned_double_t s_m;
   double d_m;
   double vel_s_mps;
   double vel_d_mps;
   double acc_s_mps2;
   double acc_d_mps2;
 
-  double GetVelocity() const;
+  double LongitudinalForwardDistanceTo(const FrenetCar& car);
+  double LongitudinalBackwardDistanceTo(const FrenetCar& car);
+  double LateralDistanceTo(const FrenetCar& car);
+
+  bool IsFrontBufferViolatedBy(const FrenetCar& car);
+  bool IsBackBufferViolatedBy(const FrenetCar& car);
+  bool IsSideBufferViolatedBy(const FrenetCar& car);
 
   /**
  * @brief Transforms data provided by one item from sensor fusion vector to FrenetCar.
@@ -36,8 +47,11 @@ struct FrenetCar {
  * @return Instance of FrenetCar corresponding to this Cartesian car.
  */
   static FrenetCar
-  FromVectorAssumingConstantVelocityAndLaneKeeping(const std::vector<double>& car_info,
+  FromVectorAssumingConstantVelocityAndLaneKeeping(const std::vector<double>& car_info, double time,
                                                    const PathPlannerConfig& config);
+  static void SetPathPlannerConfig(const PathPlannerConfig* pp_config);
+
+  static const PathPlannerConfig* pp_config_;
 };
 
 struct CartesianCar {
@@ -112,9 +126,38 @@ inline bool operator==(const Car& car1, const Car& car2)
 }
 
 
+inline std::ostream& operator<<(std::ostream& ostream, const FrenetCar& car)
+{
+  ostream << std::fixed
+          << "FrenetCar{\n"
+          << "  .id         = " << car.id         << ",\n"
+          << "  .state      = " << car.state      << ",\n"
+          << "  .vel_mps    = " << car.vel_mps    << ",\n"
+          << "  .time_s     = " << car.time_s     << ",\n"
+          << "  .s_m        = " << car.s_m        << ",\n"
+          << "  .d_m        = " << car.d_m        << ",\n"
+          << "  .vel_s_mps  = " << car.vel_s_mps  << ",\n"
+          << "  .vel_d_mps  = " << car.vel_d_mps  << ",\n"
+          << "  .acc_s_mps2 = " << car.acc_s_mps2 << ",\n"
+          << "  .acc_d_mps2 = " << car.acc_d_mps2 << ",\n"
+          << "}";
+
+  return ostream;
+}
+
+
 inline bool operator==(const FrenetCar& car1, const FrenetCar& car2)
 {
-  return not static_cast<bool>(std::memcmp(&car1, &car2, sizeof(FrenetCar)));
+  return car1.id == car2.id                        &&
+         car1.state == car2.state                  &&
+         IsEqual(car1.vel_mps, car2.vel_mps)       &&
+         IsEqual(car1.time_s, car2.time_s)         &&
+         car1.s_m == car2.s_m                      &&
+         IsEqual(car1.d_m, car2.d_m)               &&
+         IsEqual(car1.vel_s_mps, car2.vel_s_mps)   &&
+         IsEqual(car1.vel_d_mps, car2.vel_d_mps)   &&
+         IsEqual(car1.acc_s_mps2, car2.acc_s_mps2) &&
+         IsEqual(car1.acc_d_mps2, car2.acc_d_mps2);
 }
 
 
@@ -127,6 +170,32 @@ inline bool operator<(const Car& car1, const Car& car2)
 inline bool operator<(const FrenetCar& car1, const FrenetCar& car2)
 {
   return (car1.id < car2.id);
+}
+
+inline std::vector<FrenetCar> GetFrenetCarsInLane(int lane, double lane_width, const std::vector<FrenetCar>& all_cars)
+{
+  std::vector<FrenetCar> cars_in_lane;
+  for (const auto& car : all_cars) {
+    if (CalcLaneNumber(car.d_m, lane_width) == lane) {
+      cars_in_lane.push_back(car);
+    }
+  }
+
+  return cars_in_lane;
+}
+
+inline std::optional<FrenetCar>
+GetNearestFrenetCarAheadBySCoordIfPresent(const FrenetCar& ego_car, const std::vector<FrenetCar> cars)
+{
+  std::optional<FrenetCar> opt{std::nullopt};
+
+  for (const auto& car : cars) {
+    if (car.s_m >= ego_car.s_m && (!opt.has_value() || opt.value().s_m > car.s_m)) {
+      opt = car;
+    }
+  }
+
+  return opt;
 }
 
 #endif //PATH_PLANNING_CAR_HPP

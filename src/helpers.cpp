@@ -111,8 +111,8 @@ std::vector<double> GetVxVy(double s, double d, double vs, double vd, const Path
   auto cur_coords = GetXY(s,d, config);
   auto future_coords = GetXY(s + vs * t, d + vd * t, config);
 
-  double vx = Calc1DSpeed(cur_coords[0], future_coords[0], t);
-  double vy = Calc1DSpeed(cur_coords[1], future_coords[1], t);
+  double vx = Calc1DVelocity(cur_coords[0], future_coords[0], t);
+  double vy = Calc1DVelocity(cur_coords[1], future_coords[1], t);
 
   return { vx, vy };
 }

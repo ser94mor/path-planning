@@ -4,6 +4,8 @@
 
 #include "car.hpp"
 
+const PathPlannerConfig* FrenetCar::pp_config_ = nullptr;
+
 Car Car::FromVector(const std::vector<double>& car_info, const PathPlannerConfig& config) {
   double vel = sqrt(car_info[3]*car_info[3] + car_info[4]*car_info[4]);
   double yaw = CalcYawRad(car_info[3], car_info[4]);
@@ -37,10 +39,6 @@ Car Car::FromVector(const std::vector<double>& car_info, const PathPlannerConfig
   };
 }
 
-double FrenetCar::GetVelocity() const {
-  return sqrt( this->vel_s_mps * this->vel_s_mps + this->vel_d_mps * this->vel_d_mps );
-}
-
 double CartesianCar::GetVelocity() const {
   return sqrt( this->vel_x_mps * this->vel_x_mps + this->vel_y_mps * this->vel_y_mps );
 }
@@ -51,6 +49,7 @@ double CartesianCar::GetYaw() const {
 
 FrenetCar
 FrenetCar::FromVectorAssumingConstantVelocityAndLaneKeeping(const std::vector<double>& car_info,
+                                                            const double time,
                                                             const PathPlannerConfig& config)
 {
   double velocity = CalcAbsVelocity(car_info[3], car_info[4]);
@@ -58,6 +57,7 @@ FrenetCar::FromVectorAssumingConstantVelocityAndLaneKeeping(const std::vector<do
       .id = static_cast<int>(car_info[0]),
       .state = State::KeepLane,
       .vel_mps = velocity,
+      .time_s = time,
       .s_m = car_info[5],
       .d_m = car_info[6],
       .vel_s_mps = velocity,  // lane keeping
@@ -65,4 +65,44 @@ FrenetCar::FromVectorAssumingConstantVelocityAndLaneKeeping(const std::vector<do
       .acc_s_mps2 = 0.0,      // constant velocity
       .acc_d_mps2 = 0.0,      //
   };
+}
+
+double FrenetCar::LongitudinalForwardDistanceTo(const FrenetCar& car) {
+  return static_cast<double>(car.s_m - this->s_m);
+}
+
+double FrenetCar::LongitudinalBackwardDistanceTo(const FrenetCar& car) {
+  return static_cast<double>(this->s_m - car.s_m);
+}
+
+double FrenetCar::LateralDistanceTo(const FrenetCar& car) {
+  return fabs(this->d_m - car.d_m);
+}
+
+void FrenetCar::SetPathPlannerConfig(const PathPlannerConfig* pp_config) {
+  pp_config_ = pp_config;
+}
+
+bool FrenetCar::IsFrontBufferViolatedBy(const FrenetCar& car) {
+  if (!pp_config_) {
+    throw std::logic_error("FrenetCar::pp_config_ pointer must have been initialized by "
+                           "FrenetCar::SetPathPlannerConfig before");
+  }
+  return this->LongitudinalForwardDistanceTo(car) < pp_config_->front_car_buffer_m;
+}
+
+bool FrenetCar::IsBackBufferViolatedBy(const FrenetCar& car) {
+  if (!pp_config_) {
+    throw std::logic_error("FrenetCar::pp_config_ pointer must have been initialized by "
+                           "FrenetCar::SetPathPlannerConfig before");
+  }
+  return this->LongitudinalBackwardDistanceTo(car) < pp_config_->back_car_buffer_m;
+}
+
+bool FrenetCar::IsSideBufferViolatedBy(const FrenetCar& car) {
+  if (!pp_config_) {
+    throw std::logic_error("FrenetCar::pp_config_ pointer must have been initialized by "
+                           "FrenetCar::SetPathPlannerConfig before");
+  }
+  return this->LateralDistanceTo(car) < pp_config_->side_car_buffer_m;
 }

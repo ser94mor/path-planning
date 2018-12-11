@@ -6,9 +6,13 @@
   "max_acc_mps2"                     :      9.500,
   "min_jerk_mps3"                    :     -9.500,
   "max_jerk_mps3"                    :      9.500,
-  "path_len"                         :        100,
+  "path_len"                         :         25,
+  "trajectory_layer_queue_len"       :        100,
   "num_lanes"                        :          3,
   "lane_width_m"                     :      4.000,
   "max_s_m"                          :   6945.554,
-  "behavior_planning_time_horizon_s" :        2.0
+  "behavior_planning_time_horizon_s" :        2.0,
+  "front_car_buffer_m"               :        5.0,
+  "back_car_buffer_m"                :        3.0,
+  "side_car_buffer_m"                :        0.5
 }

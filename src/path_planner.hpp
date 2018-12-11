@@ -27,7 +27,7 @@ public:
    * Generate X and Y tracks for the car, that is, plan its path.
    * @return vector containing 2 vectors with X and Y coordinates correspondingly
    */
-  std::vector< std::vector< double > >& GetNextXYTrajectories(const Car& car,
+  std::vector< std::vector< double > >& GetNextXYTrajectories(const FrenetCar& current_ego_car,
                                                               const std::vector<double>& prev_path_x_m,
                                                               const std::vector<double>& prev_path_y_m,
                                                               const std::vector< std::vector<double> >& sensor_fusion);
@@ -36,15 +36,10 @@ public:
 
 private:
 
-  std::vector<double> GetPrevXY(Car &car,
-                                std::vector<double> &prev_path_x,
-                                std::vector<double> &prev_path_y,
-                                int back_offset);
-
   PathPlannerConfig config_;
   std::vector< std::vector<double> > next_coords_;
   bool invoked_;
-  Car prev_car_;
+  FrenetCar car_;
   SpeedController speed_ctrl_;
 
   LocalizationLayer localization_layer_;

@@ -22,10 +22,14 @@ TEST_CASE("PathPlannerConfig::FromFile", "[path_planner_config]") {
                  "  \"min_jerk_mps3\"                    :    -10.000,\n"
                  "  \"max_jerk_mps3\"                    :     10.000,\n"
                  "  \"path_len\"                         :         50,\n"
+                 "  \"trajectory_layer_queue_len\"       :        100,\n"
                  "  \"num_lanes\"                        :          3,\n"
                  "  \"lane_width_m\"                     :      4.000,\n"
                  "  \"max_s_m\"                          :   6945.554,\n"
-                 "  \"behavior_planning_time_horizon_s\" :        3.0\n"
+                 "  \"behavior_planning_time_horizon_s\" :        3.0,\n"
+                 "  \"front_car_buffer_m\"               :        5.0,\n"
+                 "  \"back_car_buffer_m\"                :        0.5,\n"
+                 "  \"side_car_buffer_m\"                :        1.0\n"
                  "}";
   pp_temp.GetOfstream().flush();
 
@@ -47,9 +51,14 @@ TEST_CASE("PathPlannerConfig::FromFile", "[path_planner_config]") {
     REQUIRE(config.min_jerk_mps3 == Approx(-10.0));
     REQUIRE(config.max_jerk_mps3 == Approx(10.0));
     REQUIRE(config.path_len == 50);
+    REQUIRE(config.trajectory_layer_queue_len == 100);
     REQUIRE(config.num_lanes == 3);
     REQUIRE(config.lane_width_m == Approx(4.0));
     REQUIRE(config.max_s_m == Approx(6945.554));
+    REQUIRE(config.behavior_planning_time_horizon_s == Approx(3.0));
+    REQUIRE(config.front_car_buffer_m == Approx(5.0));
+    REQUIRE(config.back_car_buffer_m == Approx(0.5));
+    REQUIRE(config.side_car_buffer_m == Approx(1.0));
 
     REQUIRE(config.map_wps_x_m.size() == 2);
     REQUIRE(config.map_wps_y_m.size() == 2);

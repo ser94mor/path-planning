@@ -11,6 +11,7 @@
 #include "behavior_layer.hpp"
 
 #include <vector>
+#include <deque>
 
 class TrajectoryLayer {
 public:
@@ -21,15 +22,22 @@ public:
 
   virtual ~TrajectoryLayer();
 
-  std::vector< std::vector<double> > GetTrajectory(const FrenetCar& car) const;
+  void Initialize(const FrenetCar& car);
+
+
+  std::vector<FrenetCar> GetTrajectory(size_t num_points);
 
 private:
-  std::vector<double> GetJerkMinimizingTrajectory(std::vector<double> start, std::vector<double> end, double t);
+  std::vector<double> GetJerkMinimizingTrajectory(std::vector<double> start, std::vector<double> end, double t) const;
 
-  const PathPlannerConfig& path_planner_config_;
+  const PathPlannerConfig& pp_config_;
   LocalizationLayer& localization_layer_;
   PredictionLayer& prediction_layer_;
   BehaviorLayer& behavior_layer_;
+
+  bool initialized_;
+  FrenetCar ego_car_;
+  std::deque<FrenetCar> next_cars_;
 };
 
 

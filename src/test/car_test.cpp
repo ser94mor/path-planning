@@ -64,16 +64,19 @@ TEST_CASE("Car::FromVector", "[car]") {
       .min_jerk_mps3 = 6,
       .max_jerk_mps3 = 7,
       .path_len = 8,
-      .num_lanes = 9,
-      .lane_width_m = 10,
-      .max_s_m = 11,
-      .behavior_planning_time_horizon_s = 12,
-      // in case of Car::FromVector only map waypoints are important
-      .map_wps_x_m  = { 0, 1, 2, 3, 4 },
-      .map_wps_y_m  = { 0, 1, 2, 3, 4 },
-      .map_wps_s_m  = { 0, sqrt(2), sqrt(8), sqrt(18), sqrt(32) },
-      .map_wps_dx_m = { sqrt(0.5), sqrt(0.5)+1, sqrt(0.5)+2, sqrt(0.5)+3, sqrt(0.5)+4 },
-      .map_wps_dy_m = { -sqrt(0.5), -sqrt(0.5)+3, -sqrt(0.5)+6, -sqrt(0.5)+9, -sqrt(0.5)+12 },
+      .trajectory_layer_queue_len = 9,
+      .num_lanes = 10,
+      .lane_width_m = 11,
+      .max_s_m = 12,
+      .behavior_planning_time_horizon_s = 13,
+      .front_car_buffer_m = 5.0,
+      .back_car_buffer_m = 0.5,
+      .side_car_buffer_m = 1.0,
+      .map_wps_x_m  = {        0.0,          1.0,          2.0,          3.0,           4.0, },
+      .map_wps_y_m  = {        0.0,          1.0,          2.0,          3.0,           4.0, },
+      .map_wps_s_m  = {        0.0,      sqrt(2),      sqrt(8),     sqrt(18),      sqrt(32), },
+      .map_wps_dx_m = {  sqrt(0.5),  sqrt(0.5)+1,  sqrt(0.5)+2,  sqrt(0.5)+3,   sqrt(0.5)+4, },
+      .map_wps_dy_m = { -sqrt(0.5), -sqrt(0.5)+3, -sqrt(0.5)+6, -sqrt(0.5)+9, -sqrt(0.5)+12, },
       .spline_s_x = {},
       .spline_s_y = {},
       .spline_s_dx = {},
@@ -81,13 +84,13 @@ TEST_CASE("Car::FromVector", "[car]") {
   };
   config.InitSplines();
 
-  std::vector<double> car_vect{ 12,            /*id*/
-                                2.0,           /*x*/
-                                1.0,           /*y*/
-                                1.0,           /*vx*/
-                                -1.0,          /*vy*/
-                                1.5*sqrt(2.0), /*s*/
-                                sqrt(2.0)/2,   /*d*/
+  std::vector<double> car_vect{ 12,              /*id*/
+                                2.0,             /*x*/
+                                1.0,             /*y*/
+                                1.0,             /*vx*/
+                                -1.0,            /*vy*/
+                                1.5*sqrt(2.0),   /*s*/
+                                0.5*sqrt(2.0),   /*d*/
                               };
 
   Car car = Car::FromVector(car_vect, config);
@@ -108,4 +111,224 @@ TEST_CASE("Car::FromVector", "[car]") {
   REQUIRE( car.vel_d_mps  == Approx(1.4142135624) );
   REQUIRE( car.acc_s_mps2 == Approx(0.0) );
   REQUIRE( car.acc_d_mps2 == Approx(0.0) );
+}
+
+TEST_CASE("GetFrenetCarsInLane", "[car]")
+{
+  std::vector<FrenetCar> all_cars(5);
+  all_cars[0].d_m = 3;
+  all_cars[1].d_m = 6;
+  all_cars[2].d_m = 9;
+  all_cars[3].d_m = 4.5;
+  all_cars[4].d_m = 7.5;
+
+  std::vector<FrenetCar> expected_cars_in_lane{ all_cars[1], all_cars[3], all_cars[4] };
+  REQUIRE(GetFrenetCarsInLane(1, 4, all_cars) == expected_cars_in_lane );
+
+  REQUIRE(GetFrenetCarsInLane(3, 4, all_cars).empty() );
+
+  expected_cars_in_lane = { all_cars[0] };
+  REQUIRE(GetFrenetCarsInLane(0, 4, all_cars) == expected_cars_in_lane );
+
+  expected_cars_in_lane = { all_cars[2] };
+  REQUIRE(GetFrenetCarsInLane(2, 4, all_cars) == expected_cars_in_lane );
+}
+
+TEST_CASE("GetNearestFrenetCarAheadBySCoordIfPresent", "car")
+{
+  FrenetCar ego_car{ .s_m = 1.0, };
+
+  auto res = GetNearestFrenetCarAheadBySCoordIfPresent(ego_car, {});
+  REQUIRE( !res.has_value() );
+
+  FrenetCar other_car1{ .s_m = 2.0, };
+  res = GetNearestFrenetCarAheadBySCoordIfPresent(ego_car, { other_car1 });
+  REQUIRE( (res.has_value() && res.value() == other_car1) );
+
+  FrenetCar other_car2{ .s_m = 3.0, };
+  res = GetNearestFrenetCarAheadBySCoordIfPresent(ego_car, { other_car1, other_car2 });
+  REQUIRE( (res.has_value() && res.value() == other_car1) );
+
+  res = GetNearestFrenetCarAheadBySCoordIfPresent(ego_car, { other_car2, other_car1 });
+  REQUIRE( (res.has_value() && res.value() == other_car1) );
+
+  FrenetCar other_car3{ .s_m = 0.5, };
+  res = GetNearestFrenetCarAheadBySCoordIfPresent(ego_car, { other_car3, other_car2, other_car1 });
+  REQUIRE( (res.has_value() && res.value() == other_car1) );
+}
+
+TEST_CASE("FrenetCar::LongitudinalForwardDistanceTo", "[car]")
+{
+  circular_unsigned_double_t::SetGlobalMaxValue(3.0);
+
+  FrenetCar ego_car{ .s_m = 0.0, };
+  FrenetCar other_car{ .s_m = 2.9, };
+  REQUIRE( ego_car.LongitudinalForwardDistanceTo(other_car) == Approx(2.9) );
+
+  ego_car.s_m = 2.9;
+  other_car.s_m = 0.0;
+  REQUIRE( ego_car.LongitudinalForwardDistanceTo(other_car) == Approx(0.1) );
+
+  ego_car.s_m = 2.9;
+  other_car.s_m = 0.1;
+  REQUIRE( ego_car.LongitudinalForwardDistanceTo(other_car) == Approx(0.2) );
+
+  ego_car.s_m = 0.1;
+  other_car.s_m = 2.9;
+  REQUIRE( ego_car.LongitudinalForwardDistanceTo(other_car) == Approx(2.8) );
+}
+
+TEST_CASE("FrenetCar::LongitudinalBackwardDistanceTo", "[car]")
+{
+  circular_unsigned_double_t::SetGlobalMaxValue(3.0);
+
+  FrenetCar ego_car{ .s_m = 0.0, };
+  FrenetCar other_car{ .s_m = 2.9, };
+  REQUIRE( ego_car.LongitudinalBackwardDistanceTo(other_car) == Approx(0.1) );
+
+  ego_car.s_m = 2.9;
+  other_car.s_m = 0.0;
+  REQUIRE( ego_car.LongitudinalBackwardDistanceTo(other_car) == Approx(2.9) );
+
+  ego_car.s_m = 2.9;
+  other_car.s_m = 0.1;
+  REQUIRE( ego_car.LongitudinalBackwardDistanceTo(other_car) == Approx(2.8) );
+
+  ego_car.s_m = 0.1;
+  other_car.s_m = 2.9;
+  REQUIRE( ego_car.LongitudinalBackwardDistanceTo(other_car) == Approx(0.2) );
+}
+
+TEST_CASE("FrenetCar::LateralDistanceTo", "[car]")
+{
+  FrenetCar ego_car{ .d_m = 1.0, };
+  FrenetCar other_car{ .d_m = 1.0, };
+
+  REQUIRE(ego_car.LateralDistanceTo(other_car) == Approx(0.0) );
+
+  other_car.d_m = 0.5;
+  REQUIRE(ego_car.LateralDistanceTo(other_car) == Approx(0.5) );
+
+  other_car.d_m = 1.5;
+  REQUIRE(ego_car.LateralDistanceTo(other_car) == Approx(0.5) );
+}
+
+TEST_CASE("FrenetCar::IsFrontBufferViolatedBy", "[car]")
+{
+  PathPlannerConfig pp_config{ .max_s_m = 10.0, };
+  FrenetCar::SetPathPlannerConfig(&pp_config);
+  circular_unsigned_double_t::SetGlobalMaxValue(pp_config.max_s_m);
+
+  FrenetCar ego_car{ .s_m = 1.0, };
+  FrenetCar other_car{ .s_m = 2.0, };
+  pp_config.front_car_buffer_m = 1.1;
+  REQUIRE( ego_car.IsFrontBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 1.0;
+  other_car.s_m = 2.0;
+  pp_config.front_car_buffer_m = 0.5;
+  REQUIRE( !ego_car.IsFrontBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 9.1;
+  other_car.s_m = 0.0;
+  pp_config.front_car_buffer_m = 1.1;
+  REQUIRE( ego_car.IsFrontBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 9.1;
+  other_car.s_m = 0.1;
+  pp_config.front_car_buffer_m = 1.0;
+  REQUIRE( !ego_car.IsFrontBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 9.0;
+  other_car.s_m = 0.0;
+  pp_config.front_car_buffer_m = 1.0;
+  REQUIRE( !ego_car.IsFrontBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 10.0;
+  other_car.s_m = 1.0;
+  pp_config.front_car_buffer_m = 1.0;
+  REQUIRE( !ego_car.IsFrontBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 10.5;
+  other_car.s_m = 1.5;
+  pp_config.front_car_buffer_m = 1.0;
+  REQUIRE( !ego_car.IsFrontBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 10.5;
+  other_car.s_m = 1.0;
+  pp_config.front_car_buffer_m = 1.0;
+  REQUIRE( ego_car.IsFrontBufferViolatedBy(other_car) );
+}
+
+TEST_CASE("FrenetCar::IsBackBufferViolatedBy", "[car]")
+{
+  PathPlannerConfig pp_config{ .max_s_m = 10.0, };
+  FrenetCar::SetPathPlannerConfig(&pp_config);
+  circular_unsigned_double_t::SetGlobalMaxValue(pp_config.max_s_m);
+
+  FrenetCar ego_car{ .s_m = 2.0, };
+  FrenetCar other_car{ .s_m = 1.0, };
+  pp_config.back_car_buffer_m = 1.1;
+  REQUIRE( ego_car.IsBackBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 2.0;
+  other_car.s_m = 1.0;
+  pp_config.back_car_buffer_m = 0.5;
+  REQUIRE( !ego_car.IsBackBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 0.0;
+  other_car.s_m = 9.1;
+  pp_config.back_car_buffer_m = 1.1;
+  REQUIRE( ego_car.IsBackBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 0.1;
+  other_car.s_m = 9.1;
+  pp_config.back_car_buffer_m = 1.0;
+  REQUIRE( !ego_car.IsBackBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 0.0;
+  other_car.s_m = 9.0;
+  pp_config.back_car_buffer_m = 1.0;
+  REQUIRE( !ego_car.IsBackBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 1.0;
+  other_car.s_m = 10.0;
+  pp_config.back_car_buffer_m = 1.0;
+  REQUIRE( !ego_car.IsBackBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 1.5;
+  other_car.s_m = 10.5;
+  pp_config.back_car_buffer_m = 1.0;
+  REQUIRE( !ego_car.IsBackBufferViolatedBy(other_car) );
+
+  ego_car.s_m = 1.0;
+  other_car.s_m = 10.5;
+  pp_config.back_car_buffer_m = 1.0;
+  REQUIRE( ego_car.IsBackBufferViolatedBy(other_car) );
+}
+
+TEST_CASE("FrenetCar::IsSideBufferViolatedBy", "[car]")
+{
+  PathPlannerConfig pp_config;
+  FrenetCar::SetPathPlannerConfig(&pp_config);
+
+  FrenetCar ego_car{ .d_m = 1.0, };
+  FrenetCar other_car{ .d_m = 2.0, };
+  pp_config.side_car_buffer_m = 1.0;
+  REQUIRE( !ego_car.IsSideBufferViolatedBy(other_car) );
+
+  ego_car.d_m = 1.0;
+  other_car.d_m = 2.0;
+  pp_config.side_car_buffer_m = 1.1;
+  REQUIRE( ego_car.IsSideBufferViolatedBy(other_car) );
+
+  ego_car.d_m = 3.0;
+  other_car.d_m = 2.0;
+  pp_config.side_car_buffer_m = 1.0;
+  REQUIRE( !ego_car.IsSideBufferViolatedBy(other_car) );
+
+  ego_car.d_m = 3.0;
+  other_car.d_m = 2.0;
+  pp_config.side_car_buffer_m = 1.1;
+  REQUIRE( ego_car.IsSideBufferViolatedBy(other_car) );
 }

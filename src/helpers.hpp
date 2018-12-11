@@ -10,16 +10,52 @@
 #include <cmath>
 #include <cstdint>
 #include <vector>
+#include <map>
 
 
-inline double Calc1DSpeed(double p1, double p2, double time)
+template<typename T, typename U> std::vector<T> map_keys(const std::map<T, U>& map) {
+  std::vector<T> keys(map.size());
+  int ind = 0;
+  for (const auto& entry : map) {
+    keys[ind++] = entry.first;
+  }
+
+  return keys;
+}
+
+template<typename T, typename U> std::vector<U> map_vals(const std::map<T, U>& map) {
+  std::vector<U> vals(map.size());
+  int ind = 0;
+  for (const auto& entry : map) {
+    vals[ind++] = entry.second;
+  }
+
+  return vals;
+}
+
+inline double Calc1DVelocity(double p1, double p2, double time)
 {
   return (p2 - p1) / time;
 }
 
 
+inline double Calc1DVelocity(double vel, double acc, double jerk, double t)
+{
+  acc += jerk * t / 2;
+  vel += acc  * t / 2;
+  return vel;
+}
+
+
 inline double Calc1DAcc(double p1, double p2, double p3, double time) {
-  return (Calc1DSpeed(p2, p3, time) - Calc1DSpeed(p1, p2, time)) / time;
+  return (Calc1DVelocity(p2, p3, time) - Calc1DVelocity(p1, p2, time)) / time;
+}
+
+
+inline double Calc1DAcc(double v1, double v2, double t)
+{
+  // acceleration is a speed of velocity change within the time frame t
+  return Calc1DVelocity(v1, v2, t);
 }
 
 
@@ -81,6 +117,32 @@ inline double Calc1DPosition(double x, double v, double a, double t)
 {
   return x + v*t + ((a*t)/2)*t;
 }
+
+
+inline double CalcPolynomial(const std::vector<double>& coeffs, double x)
+{
+  double res = 0.0;
+  double arg = 1.0;
+  for (auto coeff : coeffs) {
+    res += coeff * arg;
+    arg *= x;
+  }
+
+  return res;
+}
+
+
+inline bool IsEqual(double d1, double d2) 
+{
+  return (fabs(d1 - d2) < 0.000000001);
+}
+
+
+inline int CalcLaneNumber(double d_coord, double lane_width)
+{
+  return static_cast<int>(floor(d_coord / lane_width));
+}
+
 
 int ClosestWaypoint(double x, double y, const PathPlannerConfig& config);
 

@@ -11,7 +11,8 @@ using Eigen::VectorXd;
 
 
 std::vector<double>
-TrajectoryLayer::GetJerkMinimizingTrajectory(std::vector<double> start, std::vector<double> end, double t) {
+TrajectoryLayer::GetJerkMinimizingTrajectory(std::vector<double> start, std::vector<double> end, double t) const
+{
   /*
   Calculate the Jerk Minimizing Trajectory that connects the initial state
   to the final state in time t.
@@ -60,18 +61,109 @@ TrajectoryLayer::GetJerkMinimizingTrajectory(std::vector<double> start, std::vec
 
 }
 
+
 TrajectoryLayer::TrajectoryLayer(const PathPlannerConfig& config, LocalizationLayer& localization_layer,
                                  PredictionLayer& prediction_layer, BehaviorLayer& behavior_layer):
-  path_planner_config_{config},
+  pp_config_{config},
   localization_layer_{localization_layer},
   prediction_layer_{prediction_layer},
-  behavior_layer_{behavior_layer}
+  behavior_layer_{behavior_layer},
+  initialized_{false},
+  ego_car_{},
+  next_cars_{}
 {
 
 }
 
-std::vector< std::vector<double> > TrajectoryLayer::GetTrajectory(const FrenetCar& car) const {
-  return std::vector<std::vector<double>>();
+
+std::vector<FrenetCar>
+TrajectoryLayer::GetTrajectory(size_t num_points)
+{
+  if (!initialized_) {
+    throw std::logic_error("TrajectoryLayer::Initialize should be invoked before TrajectoryLayer::GetTrajectory");
+  }
+
+  auto&& predictions = prediction_layer_.GetPredictions(num_points * pp_config_.frequency_s, ego_car_.time_s);
+
+  int ego_car_lane = CalcLaneNumber(ego_car_.d_m, pp_config_.lane_width_m);
+  auto&& cur_other_cars = map_keys(predictions);
+  auto&& cur_other_cars_same_lane = GetFrenetCarsInLane(ego_car_lane, pp_config_.lane_width_m, cur_other_cars);
+  std::optional<FrenetCar> cur_other_car_ahead =
+      GetNearestFrenetCarAheadBySCoordIfPresent(ego_car_, cur_other_cars_same_lane);
+
+  if (cur_other_car_ahead.has_value()) {
+    if ((ego_car_.state == State::KeepLane ||
+         ego_car_.state == State::PrepareLaneChangeLeft ||
+         ego_car_.state == State::PrepareLaneChangeRight)
+         ) {}
+  }
+
+
+  if (next_cars_.size() >= pp_config_.path_len * 2) {
+    std::vector<FrenetCar> to_return{next_cars_.end() - num_points, next_cars_.end()};
+    next_cars_.resize(next_cars_.size() - num_points);
+    return to_return;
+  }
+
+  FrenetCar planned_ego_car = behavior_layer_.Plan(ego_car_);
+
+  std::vector<double> s_coeffs = GetJerkMinimizingTrajectory(
+      {static_cast<double>(ego_car_.s_m), ego_car_.vel_s_mps, ego_car_.acc_s_mps2, },
+      {static_cast<double>(planned_ego_car.s_m), planned_ego_car.vel_s_mps, planned_ego_car.acc_s_mps2, },
+      pp_config_.behavior_planning_time_horizon_s
+  );
+
+  std::vector<double> d_coeffs = GetJerkMinimizingTrajectory(
+      { ego_car_.d_m, ego_car_.vel_d_mps, ego_car_.acc_d_mps2, },
+      { planned_ego_car.d_m, planned_ego_car.vel_d_mps, planned_ego_car.acc_d_mps2, },
+      pp_config_.behavior_planning_time_horizon_s
+  );
+
+  std::vector<FrenetCar> next_cars{pp_config_.path_len};
+
+  double t = pp_config_.frequency_s;
+  const double t_diff = pp_config_.frequency_s;
+  double s_prev = static_cast<double>(ego_car_.s_m);
+  double d_prev = ego_car_.d_m;
+  double vs_prev = ego_car_.vel_s_mps;
+  double vd_prev = ego_car_.vel_d_mps;
+  for (auto& next_car : next_cars) {
+    double s = CalcPolynomial(s_coeffs, t);
+    double d = CalcPolynomial(d_coeffs, t);
+    double vs = Calc1DVelocity(s_prev, s, t_diff);
+    double vd = Calc1DVelocity(d_prev, d, t_diff);
+    next_car = {
+        .id = ego_car_.id,
+        .state = ego_car_.state,
+        .vel_mps = CalcAbsVelocity(vs, vd),
+        .time_s = ego_car_.time_s + t,
+        .s_m = s,
+        .d_m = d,
+        .vel_s_mps = vs,
+        .vel_d_mps = vd,
+        .acc_s_mps2 = Calc1DAcc(vs_prev, vs, t_diff),
+        .acc_d_mps2 = Calc1DAcc(vd_prev, vd, t_diff),
+    };
+    s_prev = s;
+    d_prev = d;
+    vs_prev = vs;
+    vd_prev = vd;
+
+    t += t_diff;
+  }
+
+  next_cars.resize(num_points);
+
+  ego_car_ = next_cars[next_cars.size() - 1];
+
+  return next_cars;
+}
+
+
+void TrajectoryLayer::Initialize(const FrenetCar& car)
+{
+  ego_car_ = car;
+  initialized_ = true;
 }
 
 
