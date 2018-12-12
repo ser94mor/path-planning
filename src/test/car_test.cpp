@@ -115,6 +115,9 @@ TEST_CASE("Car::FromVector", "[car]") {
 
 TEST_CASE("GetFrenetCarsInLane", "[car]")
 {
+  PathPlannerConfig pp_config{ .lane_width_m = 4.0, };
+  FrenetCar::SetPathPlannerConfig(&pp_config);
+
   std::vector<FrenetCar> all_cars(5);
   all_cars[0].d_m = 3;
   all_cars[1].d_m = 6;
@@ -331,4 +334,18 @@ TEST_CASE("FrenetCar::IsSideBufferViolatedBy", "[car]")
   other_car.d_m = 2.0;
   pp_config.side_car_buffer_m = 1.1;
   REQUIRE( ego_car.IsSideBufferViolatedBy(other_car) );
+}
+
+TEST_CASE("FrenetCar::Lane", "[car]")
+{
+  PathPlannerConfig pp_config{ .lane_width_m = 3.0 };
+  FrenetCar::SetPathPlannerConfig(&pp_config);
+
+  REQUIRE( -3 == FrenetCar{ .d_m = -8.3, }.Lane() );
+  REQUIRE( -2 == FrenetCar{ .d_m = -4.0, }.Lane() );
+  REQUIRE( -1 == FrenetCar{ .d_m = -0.1, }.Lane() );
+  REQUIRE(  0 == FrenetCar{ .d_m =  2.3, }.Lane() );
+  REQUIRE(  1 == FrenetCar{ .d_m =  3.1, }.Lane() );
+  REQUIRE(  2 == FrenetCar{ .d_m =  7.5, }.Lane() );
+  REQUIRE(  3 == FrenetCar{ .d_m = 11.0, }.Lane() );
 }

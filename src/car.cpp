@@ -67,15 +67,15 @@ FrenetCar::FromVectorAssumingConstantVelocityAndLaneKeeping(const std::vector<do
   };
 }
 
-double FrenetCar::LongitudinalForwardDistanceTo(const FrenetCar& car) {
+double FrenetCar::LongitudinalForwardDistanceTo(const FrenetCar& car) const {
   return static_cast<double>(car.s_m - this->s_m);
 }
 
-double FrenetCar::LongitudinalBackwardDistanceTo(const FrenetCar& car) {
+double FrenetCar::LongitudinalBackwardDistanceTo(const FrenetCar& car) const {
   return static_cast<double>(this->s_m - car.s_m);
 }
 
-double FrenetCar::LateralDistanceTo(const FrenetCar& car) {
+double FrenetCar::LateralDistanceTo(const FrenetCar& car) const {
   return fabs(this->d_m - car.d_m);
 }
 
@@ -83,7 +83,7 @@ void FrenetCar::SetPathPlannerConfig(const PathPlannerConfig* pp_config) {
   pp_config_ = pp_config;
 }
 
-bool FrenetCar::IsFrontBufferViolatedBy(const FrenetCar& car) {
+bool FrenetCar::IsFrontBufferViolatedBy(const FrenetCar& car) const {
   if (!pp_config_) {
     throw std::logic_error("FrenetCar::pp_config_ pointer must have been initialized by "
                            "FrenetCar::SetPathPlannerConfig before");
@@ -91,7 +91,7 @@ bool FrenetCar::IsFrontBufferViolatedBy(const FrenetCar& car) {
   return this->LongitudinalForwardDistanceTo(car) < pp_config_->front_car_buffer_m;
 }
 
-bool FrenetCar::IsBackBufferViolatedBy(const FrenetCar& car) {
+bool FrenetCar::IsBackBufferViolatedBy(const FrenetCar& car) const {
   if (!pp_config_) {
     throw std::logic_error("FrenetCar::pp_config_ pointer must have been initialized by "
                            "FrenetCar::SetPathPlannerConfig before");
@@ -99,10 +99,22 @@ bool FrenetCar::IsBackBufferViolatedBy(const FrenetCar& car) {
   return this->LongitudinalBackwardDistanceTo(car) < pp_config_->back_car_buffer_m;
 }
 
-bool FrenetCar::IsSideBufferViolatedBy(const FrenetCar& car) {
+bool FrenetCar::IsSideBufferViolatedBy(const FrenetCar& car) const {
   if (!pp_config_) {
     throw std::logic_error("FrenetCar::pp_config_ pointer must have been initialized by "
                            "FrenetCar::SetPathPlannerConfig before");
   }
   return this->LateralDistanceTo(car) < pp_config_->side_car_buffer_m;
+}
+
+int FrenetCar::Lane() const {
+  return static_cast<int>(floor(this->d_m / pp_config_->lane_width_m));
+}
+
+bool FrenetCar::IsInFrontOf(const FrenetCar& car) const {
+  return (this->s_m >= car.s_m);
+}
+
+bool FrenetCar::IsBehind(const FrenetCar& car) const {
+  return (this->s_m < car.s_m);
 }

@@ -138,12 +138,6 @@ inline bool IsEqual(double d1, double d2)
 }
 
 
-inline int CalcLaneNumber(double d_coord, double lane_width)
-{
-  return static_cast<int>(floor(d_coord / lane_width));
-}
-
-
 int ClosestWaypoint(double x, double y, const PathPlannerConfig& config);
 
 int NextWaypoint(double x, double y, double vx, double vy, const PathPlannerConfig& config);

@@ -13,7 +13,7 @@
 #include <limits>
 #include <Eigen/Core>
 #include <Eigen/QR>
-#include "json.hpp"
+#include <json.hpp>
 
 
 
@@ -136,10 +136,13 @@ int main(int argc, char* argv[])
               double vel_s = frenet_vel[0];
               double vel_d = frenet_vel[1];
 
+
+
               FrenetCar car = {
                 .id = -1,
                 .state = State::KeepLane,
                 .vel_mps = vel_mps,
+                .time_s = global_time_s,
                 .s_m = car_s,
                 .d_m = car_d,
                 .vel_s_mps = 0.0,       // unknown here; 0.0 only for the first time, when car is not moving
@@ -147,8 +150,6 @@ int main(int argc, char* argv[])
                 .acc_s_mps2 = 0.0,      // unknown here; 0.0 only for the first time, when car is not moving
                 .acc_d_mps2 = 0.0,      //
               };
-              
-              std::cout << "\n\n" << car << "\n" << std::endl;
 
               std::vector< std::vector<double> > next_coords =
                   path_planner.GetNextXYTrajectories(car, previous_path_x, previous_path_y, sensor_fusion);
@@ -207,6 +208,7 @@ int main(int argc, char* argv[])
   } else
   {
     std::cerr << "Failed to listen to port" << std::endl;
+
     return -1;
   }
   h.run();

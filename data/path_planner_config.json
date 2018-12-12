@@ -13,6 +13,6 @@
   "max_s_m"                          :   6945.554,
   "behavior_planning_time_horizon_s" :        2.0,
   "front_car_buffer_m"               :        5.0,
-  "back_car_buffer_m"                :        3.0,
+  "back_car_buffer_m"                :        2.0,
   "side_car_buffer_m"                :        0.5
 }

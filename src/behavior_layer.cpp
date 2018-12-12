@@ -4,6 +4,8 @@
 
 #include "behavior_layer.hpp"
 
+#include <typeinfo>
+
 BehaviorLayer::BehaviorLayer(const PathPlannerConfig& path_planner_config,
                              LocalizationLayer& localization_layer,
                              PredictionLayer& prediction_layer):
@@ -78,8 +80,9 @@ FrenetCar BehaviorLayer::PlanForKeepLaneStateAndNoObstacles(const FrenetCar& ego
   double s = Calc1DPosition(static_cast<double>(ego_car.s_m), s_max_speed_at_horizon, 0.0, t);
   double s_prev = Calc1DPosition(static_cast<double>(ego_car.s_m), s_max_speed_at_horizon_prev, 0.0, t - t_diff);
 
-  double d = Calc1DPosition(ego_car.d_m, 0.0, 0.0, t);
-  double d_prev = Calc1DPosition(ego_car.d_m, 0.0, 0.0, t - t_diff);
+  double corrected_d = ego_car.Lane() * pp_config_.lane_width_m * 1.5;
+  double d = Calc1DPosition(corrected_d, 0.0, 0.0, t);
+  double d_prev = Calc1DPosition(corrected_d, 0.0, 0.0, t - t_diff);
 
   double vs = Calc1DVelocity(s_prev, s, t_diff);
   double vd = Calc1DVelocity(d_prev, d, t_diff);
@@ -110,22 +113,20 @@ BehaviorLayer::PlanForKeepLaneState(const FrenetCar& ego_car, const std::map<Fre
   FrenetCar planned_ego_car = PlanForKeepLaneStateAndNoObstacles(ego_car);
 
   // find another car that is directly ahead of the ego vehicle
-  int ego_car_lane = CalcLaneNumber(ego_car.d_m, pp_config_.lane_width_m);
   auto&& cur_other_cars = map_keys(predictions);
-  auto&& cur_other_cars_same_lane = GetFrenetCarsInLane(ego_car_lane, pp_config_.lane_width_m, cur_other_cars);
+  auto&& cur_other_cars_same_lane = GetFrenetCarsInLane(ego_car.Lane(), pp_config_.lane_width_m, cur_other_cars);
   std::optional<FrenetCar> cur_other_car_ahead =
       GetNearestFrenetCarAheadBySCoordIfPresent(ego_car, cur_other_cars_same_lane);
 
   // check whether the safety front buffer is violated for the planned car without obstacles
-  if (cur_other_car_ahead) {
+  if (cur_other_car_ahead.has_value()) {
     auto& future_other_car_ahead = predictions.at(*cur_other_car_ahead);
 
-    if (planned_ego_car.LongitudinalForwardDistanceTo(future_other_car_ahead) < pp_config_.front_car_buffer_m) {
+    if (planned_ego_car.IsFrontBufferViolatedBy(future_other_car_ahead) || 
+        planned_ego_car.IsInFrontOf(future_other_car_ahead)) {
       planned_ego_car.s_m = future_other_car_ahead.s_m - pp_config_.front_car_buffer_m;
-      planned_ego_car.vel_s_mps = future_other_car_ahead.vel_s_mps;
-      planned_ego_car.vel_mps = future_other_car_ahead.vel_mps;
-
-      std::cout << "CAR AHEAD Detected" << std::endl;
+      planned_ego_car.vel_s_mps = future_other_car_ahead.vel_s_mps - 1.0;
+      planned_ego_car.vel_mps = CalcAbsVelocity(planned_ego_car.vel_s_mps, planned_ego_car.vel_d_mps);
     }
   }
 

@@ -123,18 +123,6 @@ TEST_CASE("CalcYawRad", "[helpers]") {
   REQUIRE( Approx(4 * M_PI / 3)  == CalcYawRad(-1.0, -sqrt(3)) );
 }
 
-TEST_CASE("CalcLaneNumber", "[helpers]")
-{
-  REQUIRE( -3 == CalcLaneNumber(-8.3, 3.0) );
-  REQUIRE( -2 == CalcLaneNumber(-4.0, 3.0) );
-  REQUIRE( -1 == CalcLaneNumber(-0.1, 3.0) );
-  REQUIRE(  0 == CalcLaneNumber(2.3,  3.0) );
-  REQUIRE(  1 == CalcLaneNumber(3.1,  3.0) );
-  REQUIRE(  2 == CalcLaneNumber(7.5,  3.0) );
-  REQUIRE(  3 == CalcLaneNumber(11.0, 3.0) );
-}
-
-
 TEST_CASE("map_keys", "[helpers]")
 {
   std::map<int, double> map{

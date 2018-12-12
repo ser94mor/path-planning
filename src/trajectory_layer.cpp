@@ -4,6 +4,7 @@
 
 #include "trajectory_layer.hpp"
 
+#include <typeinfo>
 #include <Eigen/Dense>
 
 using Eigen::MatrixXd;
@@ -85,31 +86,46 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
 
   auto&& predictions = prediction_layer_.GetPredictions(num_points * pp_config_.frequency_s, ego_car_.time_s);
 
-  int ego_car_lane = CalcLaneNumber(ego_car_.d_m, pp_config_.lane_width_m);
   auto&& cur_other_cars = map_keys(predictions);
-  auto&& cur_other_cars_same_lane = GetFrenetCarsInLane(ego_car_lane, pp_config_.lane_width_m, cur_other_cars);
-  std::optional<FrenetCar> cur_other_car_ahead =
+  auto&& cur_other_cars_same_lane = GetFrenetCarsInLane(ego_car_.Lane(), pp_config_.lane_width_m, cur_other_cars);
+  std::optional<FrenetCar> cur_other_car_ahead_opt =
       GetNearestFrenetCarAheadBySCoordIfPresent(ego_car_, cur_other_cars_same_lane);
 
-  if (cur_other_car_ahead.has_value()) {
-    if ((ego_car_.state == State::KeepLane ||
-         ego_car_.state == State::PrepareLaneChangeLeft ||
-         ego_car_.state == State::PrepareLaneChangeRight)
-         ) {}
+  if (cur_other_car_ahead_opt.has_value()) {
+    auto cur_other_car_ahead = cur_other_car_ahead_opt.value();
+
+    if (ego_car_.IsFrontBufferViolatedBy(cur_other_car_ahead)) {
+      std::cout << typeid(this).name() << "::GetTrajectory identified the front buffer violation of ego car\n"
+                << ego_car_ << "\n by other car\n" << cur_other_car_ahead << std::endl;
+      next_cars_.resize(0);
+      auto future_other_car_ahead = predictions.at(cur_other_car_ahead);
+    }
   }
 
 
-  if (next_cars_.size() >= pp_config_.path_len * 2) {
-    std::vector<FrenetCar> to_return{next_cars_.end() - num_points, next_cars_.end()};
+  if (next_cars_.size() >= pp_config_.path_len) {
+    std::vector<FrenetCar> to_return{next_cars_.rbegin(), next_cars_.rbegin() + num_points};
+    ego_car_ = to_return[to_return.size() - 1];
     next_cars_.resize(next_cars_.size() - num_points);
+
     return to_return;
+  }
+
+  if (!next_cars_.empty()) {
+    ego_car_ = next_cars_[0];
   }
 
   FrenetCar planned_ego_car = behavior_layer_.Plan(ego_car_);
 
+  double ego_car_s = static_cast<double>(ego_car_.s_m);
+  double planned_ego_car_s = static_cast<double>(planned_ego_car.s_m);
+  if (planned_ego_car_s < ego_car_s) {
+    planned_ego_car_s += pp_config_.max_s_m;
+  }
+
   std::vector<double> s_coeffs = GetJerkMinimizingTrajectory(
-      {static_cast<double>(ego_car_.s_m), ego_car_.vel_s_mps, ego_car_.acc_s_mps2, },
-      {static_cast<double>(planned_ego_car.s_m), planned_ego_car.vel_s_mps, planned_ego_car.acc_s_mps2, },
+      {ego_car_s, ego_car_.vel_s_mps, ego_car_.acc_s_mps2, },
+      {planned_ego_car_s, planned_ego_car.vel_s_mps, planned_ego_car.acc_s_mps2, },
       pp_config_.behavior_planning_time_horizon_s
   );
 
@@ -119,31 +135,33 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
       pp_config_.behavior_planning_time_horizon_s
   );
 
-  std::vector<FrenetCar> next_cars{pp_config_.path_len};
-
   double t = pp_config_.frequency_s;
   const double t_diff = pp_config_.frequency_s;
   double s_prev = static_cast<double>(ego_car_.s_m);
   double d_prev = ego_car_.d_m;
   double vs_prev = ego_car_.vel_s_mps;
   double vd_prev = ego_car_.vel_d_mps;
-  for (auto& next_car : next_cars) {
+
+
+  for (int i = 0; i < pp_config_.trajectory_layer_queue_len - next_cars_.size(); ++i) {
     double s = CalcPolynomial(s_coeffs, t);
     double d = CalcPolynomial(d_coeffs, t);
     double vs = Calc1DVelocity(s_prev, s, t_diff);
     double vd = Calc1DVelocity(d_prev, d, t_diff);
-    next_car = {
-        .id = ego_car_.id,
-        .state = ego_car_.state,
-        .vel_mps = CalcAbsVelocity(vs, vd),
-        .time_s = ego_car_.time_s + t,
-        .s_m = s,
-        .d_m = d,
-        .vel_s_mps = vs,
-        .vel_d_mps = vd,
-        .acc_s_mps2 = Calc1DAcc(vs_prev, vs, t_diff),
-        .acc_d_mps2 = Calc1DAcc(vd_prev, vd, t_diff),
-    };
+    next_cars_.push_front(
+        {
+          .id = ego_car_.id,
+          .state = ego_car_.state,
+          .vel_mps = CalcAbsVelocity(vs, vd),
+          .time_s = ego_car_.time_s + t,
+          .s_m = s,
+          .d_m = d,
+          .vel_s_mps = vs,
+          .vel_d_mps = vd,
+          .acc_s_mps2 = Calc1DAcc(vs_prev, vs, t_diff),
+          .acc_d_mps2 = Calc1DAcc(vd_prev, vd, t_diff),
+        }
+    );
     s_prev = s;
     d_prev = d;
     vs_prev = vs;
@@ -152,11 +170,12 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
     t += t_diff;
   }
 
-  next_cars.resize(num_points);
 
-  ego_car_ = next_cars[next_cars.size() - 1];
+  std::vector<FrenetCar> to_return{next_cars_.rbegin(), next_cars_.rbegin() + num_points};
+  ego_car_ = to_return[to_return.size() - 1];
+  next_cars_.resize(next_cars_.size() - num_points);
 
-  return next_cars;
+  return to_return;
 }
 
 

@@ -16,6 +16,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <typeinfo>
 
 std::vector< std::vector<double> >&
 PathPlanner::GetNextXYTrajectories(const FrenetCar& current_ego_car,
@@ -31,10 +32,10 @@ PathPlanner::GetNextXYTrajectories(const FrenetCar& current_ego_car,
     car_ = current_ego_car;
   }
 
-  std::cout << "===" << ++invocation_counter << "===\n";
+  std::cout << "\n======" << ++invocation_counter << "======\n";
 
   // update the list of characteristics of other cars
-  localization_layer_.Update(sensor_fusion, current_ego_car.time_s);
+  localization_layer_.Update(sensor_fusion, car_.time_s);
 
   auto prev_path_size = prev_path_x.size();
 
@@ -60,8 +61,10 @@ PathPlanner::GetNextXYTrajectories(const FrenetCar& current_ego_car,
     if (!sufficiently_fast_moving) {
       // control speed using the PID controller; keep lane
 
-      car_.vel_s_mps = speed_ctrl_.GetVelocity(config_.max_speed_mps, car_.vel_s_mps, config_.frequency_s);
-
+      double s_vel = speed_ctrl_.GetVelocity(config_.max_speed_mps, car_.vel_s_mps, config_.frequency_s);
+      car_.acc_s_mps2 = Calc1DAcc(car_.vel_s_mps, s_vel, config_.frequency_s);
+      car_.vel_s_mps = s_vel;
+      car_.vel_mps = car_.vel_s_mps;
       car_.s_m += car_.vel_s_mps * config_.frequency_s;
 
       if (car_.s_m > config_.max_s_m) {
@@ -92,6 +95,10 @@ PathPlanner::GetNextXYTrajectories(const FrenetCar& current_ego_car,
   }
 
   invoked_ = true;
+
+
+  std::cout << typeid(this).name() << "::GetNextXYTrajectories: last ego car in planned path is\n" << car_ << '\n';
+  std::cout << "======" << invocation_counter << "======\n\n" << std::endl;
 
   return next_coords_;
 }

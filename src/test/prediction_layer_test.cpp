@@ -188,15 +188,15 @@ TEST_CASE("PredictionLayer::GetPredictions", "[prediction_layer]")
     REQUIRE( predictions.at(car_2) == expected_car_2 );
 
 
-    localization_layer.Update({car_vect_1, car_vect_2}, 1.0);
-    predictions = prediction_layer.GetPredictions(1.0, 2.0);
+    localization_layer.Update({car_vect_1, car_vect_2}, 2.0);
+    predictions = prediction_layer.GetPredictions(2.0, 3.0);
 
     FrenetCar expected_car_3{
         .id = 12,
         .state = car_1.state,
         .vel_mps = sqrt(2.0),
-        .time_s = 3.0,
-        .s_m = 2.5*sqrt(2.0),
+        .time_s = 5.0,
+        .s_m = 3.5*sqrt(2.0),
         .d_m = sqrt(2.0)/2.0,
         .vel_s_mps = sqrt(2.0),
         .vel_d_mps = 0.0,
@@ -208,8 +208,8 @@ TEST_CASE("PredictionLayer::GetPredictions", "[prediction_layer]")
         .id = 28,
         .state = car_1.state,
         .vel_mps = sqrt(2.0),
-        .time_s = 3.0,
-        .s_m = 3.5*sqrt(2.0),
+        .time_s = 5.0,
+        .s_m = 4.5*sqrt(2.0),
         .d_m = -sqrt(2.0)/2.0,
         .vel_s_mps = sqrt(2.0),
         .vel_d_mps = 0.0,

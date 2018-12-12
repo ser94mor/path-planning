@@ -33,13 +33,18 @@ struct FrenetCar {
   double acc_s_mps2;
   double acc_d_mps2;
 
-  double LongitudinalForwardDistanceTo(const FrenetCar& car);
-  double LongitudinalBackwardDistanceTo(const FrenetCar& car);
-  double LateralDistanceTo(const FrenetCar& car);
+  double LongitudinalForwardDistanceTo(const FrenetCar& car) const;
+  double LongitudinalBackwardDistanceTo(const FrenetCar& car) const;
+  double LateralDistanceTo(const FrenetCar& car) const;
 
-  bool IsFrontBufferViolatedBy(const FrenetCar& car);
-  bool IsBackBufferViolatedBy(const FrenetCar& car);
-  bool IsSideBufferViolatedBy(const FrenetCar& car);
+  bool IsFrontBufferViolatedBy(const FrenetCar& car) const;
+  bool IsBackBufferViolatedBy(const FrenetCar& car) const;
+  bool IsSideBufferViolatedBy(const FrenetCar& car) const;
+
+  bool IsInFrontOf(const FrenetCar& car) const;
+  bool IsBehind(const FrenetCar& car) const;
+
+  int Lane() const;
 
   /**
  * @brief Transforms data provided by one item from sensor fusion vector to FrenetCar.
@@ -176,7 +181,7 @@ inline std::vector<FrenetCar> GetFrenetCarsInLane(int lane, double lane_width, c
 {
   std::vector<FrenetCar> cars_in_lane;
   for (const auto& car : all_cars) {
-    if (CalcLaneNumber(car.d_m, lane_width) == lane) {
+    if (car.Lane() == lane) {
       cars_in_lane.push_back(car);
     }
   }
