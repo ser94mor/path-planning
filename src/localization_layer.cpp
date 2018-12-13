@@ -18,12 +18,12 @@ void LocalizationLayer::Update(const std::vector< std::vector<double> >& sensor_
   cars_updated_ = false;
 }
 
-std::vector<FrenetCar> LocalizationLayer::GetFrenetCars() {
+std::vector<Car> LocalizationLayer::GetCars() {
   if (not cars_updated_) {
     cars_.resize(sensor_fusion_.size());
     for (int i = 0; i < sensor_fusion_.size(); ++i) {
       cars_[i] = 
-          FrenetCar::FromVectorAssumingConstantVelocityAndLaneKeeping(sensor_fusion_[i], time_, path_planner_config_);
+          Car::FromVectorAssumingConstantVelocityAndLaneKeeping(sensor_fusion_[i], time_, path_planner_config_);
     }
   }
 

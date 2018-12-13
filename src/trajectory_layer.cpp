@@ -77,7 +77,7 @@ TrajectoryLayer::TrajectoryLayer(const PathPlannerConfig& config, LocalizationLa
 }
 
 
-std::vector<FrenetCar>
+std::vector<Car>
 TrajectoryLayer::GetTrajectory(size_t num_points)
 {
   if (!initialized_) {
@@ -87,9 +87,9 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
   auto&& predictions = prediction_layer_.GetPredictions(num_points * pp_config_.frequency_s, ego_car_.time_s);
 
   auto&& cur_other_cars = map_keys(predictions);
-  auto&& cur_other_cars_same_lane = GetFrenetCarsInLane(ego_car_.Lane(), pp_config_.lane_width_m, cur_other_cars);
-  std::optional<FrenetCar> cur_other_car_ahead_opt =
-      GetNearestFrenetCarAheadBySCoordIfPresent(ego_car_, cur_other_cars_same_lane);
+  auto&& cur_other_cars_same_lane = GetCarsInLane(ego_car_.Lane(), pp_config_.lane_width_m, cur_other_cars);
+  std::optional<Car> cur_other_car_ahead_opt =
+      GetNearestCarAheadBySCoordIfPresent(ego_car_, cur_other_cars_same_lane);
 
   if (cur_other_car_ahead_opt.has_value()) {
     auto cur_other_car_ahead = cur_other_car_ahead_opt.value();
@@ -98,13 +98,12 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
       std::cout << typeid(this).name() << "::GetTrajectory identified the front buffer violation of ego car\n"
                 << ego_car_ << "\n by other car\n" << cur_other_car_ahead << std::endl;
       next_cars_.resize(0);
-      auto future_other_car_ahead = predictions.at(cur_other_car_ahead);
     }
   }
 
 
   if (next_cars_.size() >= pp_config_.path_len) {
-    std::vector<FrenetCar> to_return{next_cars_.rbegin(), next_cars_.rbegin() + num_points};
+    std::vector<Car> to_return{next_cars_.rbegin(), next_cars_.rbegin() + num_points};
     ego_car_ = to_return[to_return.size() - 1];
     next_cars_.resize(next_cars_.size() - num_points);
 
@@ -115,7 +114,7 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
     ego_car_ = next_cars_[0];
   }
 
-  FrenetCar planned_ego_car = behavior_layer_.Plan(ego_car_);
+  Car planned_ego_car = behavior_layer_.Plan(ego_car_);
 
   double ego_car_s = static_cast<double>(ego_car_.s_m);
   double planned_ego_car_s = static_cast<double>(planned_ego_car.s_m);
@@ -123,16 +122,18 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
     planned_ego_car_s += pp_config_.max_s_m;
   }
 
+  double planning_time_horizon = planned_ego_car.time_s - ego_car_.time_s;
+
   std::vector<double> s_coeffs = GetJerkMinimizingTrajectory(
       {ego_car_s, ego_car_.vel_s_mps, ego_car_.acc_s_mps2, },
       {planned_ego_car_s, planned_ego_car.vel_s_mps, planned_ego_car.acc_s_mps2, },
-      pp_config_.behavior_planning_time_horizon_s
+      planning_time_horizon
   );
 
   std::vector<double> d_coeffs = GetJerkMinimizingTrajectory(
       { ego_car_.d_m, ego_car_.vel_d_mps, ego_car_.acc_d_mps2, },
       { planned_ego_car.d_m, planned_ego_car.vel_d_mps, planned_ego_car.acc_d_mps2, },
-      pp_config_.behavior_planning_time_horizon_s
+      planning_time_horizon
   );
 
   double t = pp_config_.frequency_s;
@@ -171,7 +172,7 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
   }
 
 
-  std::vector<FrenetCar> to_return{next_cars_.rbegin(), next_cars_.rbegin() + num_points};
+  std::vector<Car> to_return{next_cars_.rbegin(), next_cars_.rbegin() + num_points};
   ego_car_ = to_return[to_return.size() - 1];
   next_cars_.resize(next_cars_.size() - num_points);
 
@@ -179,7 +180,7 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
 }
 
 
-void TrajectoryLayer::Initialize(const FrenetCar& car)
+void TrajectoryLayer::Initialize(const Car& car)
 {
   ego_car_ = car;
   initialized_ = true;

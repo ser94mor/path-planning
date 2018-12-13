@@ -29,7 +29,9 @@ TEST_CASE("PathPlannerConfig::FromFile", "[path_planner_config]") {
                  "  \"behavior_planning_time_horizon_s\" :        3.0,\n"
                  "  \"front_car_buffer_m\"               :        5.0,\n"
                  "  \"back_car_buffer_m\"                :        0.5,\n"
-                 "  \"side_car_buffer_m\"                :        1.0\n"
+                 "  \"side_car_buffer_m\"                :        1.0,\n"
+                 "  \"region_of_interest_front_m\"       :        50,\n"
+                 "  \"region_of_interest_back_m\"        :        20 \n"
                  "}";
   pp_temp.GetOfstream().flush();
 
@@ -59,6 +61,8 @@ TEST_CASE("PathPlannerConfig::FromFile", "[path_planner_config]") {
     REQUIRE(config.front_car_buffer_m == Approx(5.0));
     REQUIRE(config.back_car_buffer_m == Approx(0.5));
     REQUIRE(config.side_car_buffer_m == Approx(1.0));
+    REQUIRE(config.region_of_interest_front_m == Approx(50));
+    REQUIRE(config.region_of_interest_back_m == Approx(20));
 
     REQUIRE(config.map_wps_x_m.size() == 2);
     REQUIRE(config.map_wps_y_m.size() == 2);

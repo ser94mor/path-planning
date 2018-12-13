@@ -16,17 +16,17 @@ class PredictionLayer {
 public:
   PredictionLayer(const PathPlannerConfig& path_planner_config, LocalizationLayer& localization_layer);
 
-  std::pair<FrenetCar, FrenetCar> GetPredictionForFrenetCar(const FrenetCar& car, double t) const;
+  std::pair<Car, Car> GetPredictionForCar(const Car& car, double t) const;
 
-  std::map<FrenetCar, FrenetCar> GetPredictionsForFrenetCars(const std::vector<FrenetCar>& cars, double t) const;
+  std::map<Car, Car> GetPredictionsForCars(const std::vector<Car>& cars, double t) const;
 
-  std::map<FrenetCar, FrenetCar> GetPredictions(double pred_time, double start_time);
+  std::map<Car, Car> GetPredictions(double pred_time, double start_time);
 
 private:
   const PathPlannerConfig& path_planner_config_;
   LocalizationLayer& localization_layer_;
 
-  cache::lru_cache< std::tuple<size_t, double, double, double>, std::map<FrenetCar, FrenetCar> > cache_predictions_;
+  cache::lru_cache< std::tuple<size_t, double, double, double>, std::map<Car, Car> > cache_predictions_;
 
   std::tuple<size_t, double, double, double> last_update_info_;
 

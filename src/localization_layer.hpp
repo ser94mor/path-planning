@@ -18,7 +18,7 @@ public:
 
   void Update(const std::vector< std::vector<double> >& sensor_fusion, double time);
 
-  std::vector<FrenetCar> GetFrenetCars();
+  std::vector<Car> GetCars();
 
   virtual ~LocalizationLayer();
 
@@ -26,7 +26,7 @@ private:
   const PathPlannerConfig& path_planner_config_;
   std::vector< std::vector<double> > sensor_fusion_;
   double time_;
-  std::vector<FrenetCar> cars_;
+  std::vector<Car> cars_;
   bool cars_updated_;
   uint64_t update_cnt_;
 };

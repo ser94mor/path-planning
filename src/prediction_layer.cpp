@@ -16,8 +16,8 @@ PredictionLayer::PredictionLayer(const PathPlannerConfig& path_planner_config, L
 
 }
 
-std::pair<FrenetCar, FrenetCar>
-PredictionLayer::GetPredictionForFrenetCar(const FrenetCar& car, double t) const
+std::pair<Car, Car>
+PredictionLayer::GetPredictionForCar(const Car& car, double t) const
 {
   const double time_diff = path_planner_config_.frequency_s;
 
@@ -51,20 +51,20 @@ PredictionLayer::GetPredictionForFrenetCar(const FrenetCar& car, double t) const
     };
 }
 
-std::map<FrenetCar, FrenetCar>
-PredictionLayer::GetPredictionsForFrenetCars(const std::vector<FrenetCar>& cars, double t) const {
-  std::map<FrenetCar, FrenetCar> pred_cars{};
+std::map<Car, Car>
+PredictionLayer::GetPredictionsForCars(const std::vector<Car>& cars, double t) const {
+  std::map<Car, Car> pred_cars{};
 
   for (const auto& car : cars) {
-    pred_cars.insert(GetPredictionForFrenetCar(car, t));
+    pred_cars.insert(GetPredictionForCar(car, t));
   }
 
   return pred_cars;
 }
 
-std::map<FrenetCar, FrenetCar> PredictionLayer::GetPredictions(double pred_time, double start_time)
+std::map<Car, Car> PredictionLayer::GetPredictions(double pred_time, double start_time)
 {
-  auto cars = localization_layer_.GetFrenetCars();
+  auto cars = localization_layer_.GetCars();
   if (cars.empty()) {
     return {};
   }
@@ -77,13 +77,13 @@ std::map<FrenetCar, FrenetCar> PredictionLayer::GetPredictions(double pred_time,
 
   double offset_time = start_time - cars[0].time_s;
   if (!IsEqual(offset_time, 0.0)) {
-    auto offset_car_preds = GetPredictionsForFrenetCars(cars, offset_time);
+    auto offset_car_preds = GetPredictionsForCars(cars, offset_time);
     for (auto& car : cars) {
       car = offset_car_preds.at(car);
     }
   }
 
-  auto predictions = GetPredictionsForFrenetCars(cars, pred_time);
+  auto predictions = GetPredictionsForCars(cars, pred_time);
   cache_predictions_.put(last_update_info_, predictions);
 
   return predictions;

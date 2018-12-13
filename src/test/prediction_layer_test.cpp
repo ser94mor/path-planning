@@ -35,7 +35,7 @@ static PathPlannerConfig config{
     .spline_s_dy = {},
 };
 
-TEST_CASE("PredictionLayer::GetPredictionForFrenetCar", "[prediction_layer]")
+TEST_CASE("PredictionLayer::GetPredictionForCar", "[prediction_layer]")
 {
   config.InitSplines();
 
@@ -44,15 +44,15 @@ TEST_CASE("PredictionLayer::GetPredictionForFrenetCar", "[prediction_layer]")
   std::vector<double> car_vect_1{ 12 /*id*/, 1.0 /*x*/, 0.0 /*y*/, 1.0 /*vx*/, 1.0 /*vy*/, sqrt(2.0)/2.0 /*s*/, sqrt(2.0)/2.0 /*d*/};
 
   localization_layer.Update({car_vect_1}, 1.0);
-  auto car_1 = localization_layer.GetFrenetCars()[0];
+  auto car_1 = localization_layer.GetCars()[0];
 
   PredictionLayer prediction_layer{config, localization_layer};
 
-  SECTION("PredictionLayer::GetPredictionForFrenetCar returns expected predictions")
+  SECTION("PredictionLayer::GetPredictionForCar returns expected predictions")
   {
 
-    auto prediction = prediction_layer.GetPredictionForFrenetCar(car_1, 1.0);
-    FrenetCar expected_car{
+    auto prediction = prediction_layer.GetPredictionForCar(car_1, 1.0);
+    Car expected_car{
       .id = 12,
       .state = car_1.state,
       .vel_mps = sqrt(2.0),
@@ -69,7 +69,7 @@ TEST_CASE("PredictionLayer::GetPredictionForFrenetCar", "[prediction_layer]")
   }
 }
 
-TEST_CASE("PredictionLayer::GetPredictionsForFrenetCars", "[prediction_layer]")
+TEST_CASE("PredictionLayer::GetPredictionsForCars", "[prediction_layer]")
 {
   config.InitSplines();
 
@@ -80,13 +80,13 @@ TEST_CASE("PredictionLayer::GetPredictionsForFrenetCars", "[prediction_layer]")
 
   PredictionLayer prediction_layer{config, localization_layer};
 
-  SECTION("PredictionLayer::GetPredictionsForFrenetCars should return "
+  SECTION("PredictionLayer::GetPredictionsForCars should return "
           "expected number of cars and predictions are correct")
   {
     localization_layer.Update({car_vect_1}, 1.0);
-    auto car_1 = localization_layer.GetFrenetCars()[0];
+    auto car_1 = localization_layer.GetCars()[0];
 
-    FrenetCar expected_car_1{
+    Car expected_car_1{
         .id = 12,
         .state = car_1.state,
         .vel_mps = sqrt(2.0),
@@ -99,16 +99,16 @@ TEST_CASE("PredictionLayer::GetPredictionsForFrenetCars", "[prediction_layer]")
         .acc_d_mps2 = 0.0,
     };
 
-    auto predictions = prediction_layer.GetPredictionsForFrenetCars({car_1}, 1.0);
+    auto predictions = prediction_layer.GetPredictionsForCars({car_1}, 1.0);
     REQUIRE( predictions.size() == 1 );
     REQUIRE( predictions.at(car_1) == expected_car_1 );
 
     localization_layer.Update({car_vect_1, car_vect_2}, 1.0);
-    car_1 = localization_layer.GetFrenetCars()[0];
-    auto car_2 = localization_layer.GetFrenetCars()[1];
-    predictions = prediction_layer.GetPredictionsForFrenetCars(localization_layer.GetFrenetCars(), 1.0);
+    car_1 = localization_layer.GetCars()[0];
+    auto car_2 = localization_layer.GetCars()[1];
+    predictions = prediction_layer.GetPredictionsForCars(localization_layer.GetCars(), 1.0);
 
-    FrenetCar expected_car_2{
+    Car expected_car_2{
         .id = 28,
         .state = car_1.state,
         .vel_mps = sqrt(2.0),
@@ -141,9 +141,9 @@ TEST_CASE("PredictionLayer::GetPredictions", "[prediction_layer]")
   SECTION("PredictionLayer::GetPredictions should return expected number of cars and predictions are correct")
   {
     localization_layer.Update({car_vect_1}, 1.0);
-    auto car_1 = localization_layer.GetFrenetCars()[0];
+    auto car_1 = localization_layer.GetCars()[0];
 
-    FrenetCar expected_car_1{
+    Car expected_car_1{
         .id = 12,
         .state = car_1.state,
         .vel_mps = sqrt(2.0),
@@ -161,11 +161,11 @@ TEST_CASE("PredictionLayer::GetPredictions", "[prediction_layer]")
     REQUIRE( predictions.at(car_1) == expected_car_1 );
 
     localization_layer.Update({car_vect_1, car_vect_2}, 1.0);
-    car_1 = localization_layer.GetFrenetCars()[0];
-    auto car_2 = localization_layer.GetFrenetCars()[1];
+    car_1 = localization_layer.GetCars()[0];
+    auto car_2 = localization_layer.GetCars()[1];
     predictions = prediction_layer.GetPredictions(1.0, 1.0);
 
-    FrenetCar expected_car_2{
+    Car expected_car_2{
         .id = 28,
         .state = car_1.state,
         .vel_mps = sqrt(2.0),
@@ -191,7 +191,7 @@ TEST_CASE("PredictionLayer::GetPredictions", "[prediction_layer]")
     localization_layer.Update({car_vect_1, car_vect_2}, 2.0);
     predictions = prediction_layer.GetPredictions(2.0, 3.0);
 
-    FrenetCar expected_car_3{
+    Car expected_car_3{
         .id = 12,
         .state = car_1.state,
         .vel_mps = sqrt(2.0),
@@ -204,7 +204,7 @@ TEST_CASE("PredictionLayer::GetPredictions", "[prediction_layer]")
         .acc_d_mps2 = 0.0,
     };
 
-    FrenetCar expected_car_4{
+    Car expected_car_4{
         .id = 28,
         .state = car_1.state,
         .vel_mps = sqrt(2.0),

@@ -35,6 +35,8 @@ PathPlannerConfig PathPlannerConfig::FromFile(const char* pp_file, const char* m
       .front_car_buffer_m = config_json["front_car_buffer_m"].get<double>(),
       .back_car_buffer_m = config_json["back_car_buffer_m"].get<double>(),
       .side_car_buffer_m = config_json["side_car_buffer_m"].get<double>(),
+      .region_of_interest_front_m = config_json["region_of_interest_front_m"].get<double>(),
+      .region_of_interest_back_m = config_json["region_of_interest_back_m"].get<double>(),
       .map_wps_x_m = {},
       .map_wps_y_m = {},
       .map_wps_s_m = {},

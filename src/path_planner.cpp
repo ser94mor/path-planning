@@ -19,7 +19,7 @@
 #include <typeinfo>
 
 std::vector< std::vector<double> >&
-PathPlanner::GetNextXYTrajectories(const FrenetCar& current_ego_car,
+PathPlanner::GetNextXYTrajectories(const Car& current_ego_car,
                                    const std::vector<double>& prev_path_x,
                                    const std::vector<double>& prev_path_y,
                                    const std::vector< std::vector<double> >& sensor_fusion)
@@ -45,7 +45,7 @@ PathPlanner::GetNextXYTrajectories(const FrenetCar& current_ego_car,
     next_coords_[1][i] = prev_path_y[i];
   }
 
-  std::vector<FrenetCar> cars;
+  std::vector<Car> cars;
   if (sufficiently_fast_moving) {
     cars = trajectory_layer_.GetTrajectory(config_.path_len - prev_path_size);
   }

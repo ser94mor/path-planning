@@ -28,6 +28,8 @@ struct PathPlannerConfig {
   double front_car_buffer_m;
   double back_car_buffer_m;
   double side_car_buffer_m;
+  double region_of_interest_front_m;
+  double region_of_interest_back_m;
 
   std::vector<double> map_wps_x_m;
   std::vector<double> map_wps_y_m;
@@ -71,6 +73,8 @@ inline std::ostream& operator<<(std::ostream& ostream, const PathPlannerConfig& 
              "  .front_car_buffer_m               = " << config.front_car_buffer_m               << ",\n"
              "  .back_car_buffer_m                = " << config.back_car_buffer_m                << ",\n"
              "  .side_car_buffer_m                = " << config.side_car_buffer_m                << ",\n"
+             "  .region_of_interest_front_m       = " << config.region_of_interest_front_m       << ",\n"
+             "  .region_of_interest_back_m        = " << config.region_of_interest_back_m        << ",\n"
              "  .map_wps_*_m.size()               = " << config.map_wps_x_m.size()               << ",\n"
           << "}";
 

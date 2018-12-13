@@ -18,14 +18,14 @@ BehaviorLayer::BehaviorLayer(const PathPlannerConfig& path_planner_config,
 
 
 
-FrenetCar BehaviorLayer::Plan(const FrenetCar& ego_car)
+Car BehaviorLayer::Plan(const Car& ego_car)
 {
   auto predictions =
       prediction_layer_.GetPredictions(pp_config_.behavior_planning_time_horizon_s, ego_car.time_s);
 
   const auto& possible_next_states = FSM::GetPossibleNextStates(ego_car.state);
 
-  std::vector<FrenetCar> planned_cars{possible_next_states.size()};
+  std::vector<Car> planned_cars{possible_next_states.size()};
   for (int i = 0; i < possible_next_states.size(); ++i) {
     planned_cars[i] = PlanForState(possible_next_states[i], ego_car, predictions);
   }
@@ -35,9 +35,9 @@ FrenetCar BehaviorLayer::Plan(const FrenetCar& ego_car)
 
 }
 
-FrenetCar
-BehaviorLayer::PlanForState(const State state, const FrenetCar& ego_car,
-                            const std::map<FrenetCar, FrenetCar>& predictions)
+Car
+BehaviorLayer::PlanForState(const State state, const Car& ego_car,
+                            const std::map<Car, Car>& predictions)
 {
   switch (state)
   {
@@ -64,7 +64,7 @@ BehaviorLayer::PlanForState(const State state, const FrenetCar& ego_car,
 }
 
 
-FrenetCar BehaviorLayer::PlanForKeepLaneStateAndNoObstacles(const FrenetCar& ego_car) {
+Car BehaviorLayer::PlanForKeepLaneStateAndNoObstacles(const Car& ego_car) {
   double t = pp_config_.behavior_planning_time_horizon_s;
   double t_diff = pp_config_.frequency_s;
 
@@ -106,17 +106,17 @@ FrenetCar BehaviorLayer::PlanForKeepLaneStateAndNoObstacles(const FrenetCar& ego
 }
 
 
-FrenetCar
-BehaviorLayer::PlanForKeepLaneState(const FrenetCar& ego_car, const std::map<FrenetCar, FrenetCar>& predictions)
+Car
+BehaviorLayer::PlanForKeepLaneState(const Car& ego_car, const std::map<Car, Car>& predictions)
 {
   // first, assume that there are no obstacles and plan in accordance with this assumption
-  FrenetCar planned_ego_car = PlanForKeepLaneStateAndNoObstacles(ego_car);
+  Car planned_ego_car = PlanForKeepLaneStateAndNoObstacles(ego_car);
 
   // find another car that is directly ahead of the ego vehicle
   auto&& cur_other_cars = map_keys(predictions);
-  auto&& cur_other_cars_same_lane = GetFrenetCarsInLane(ego_car.Lane(), pp_config_.lane_width_m, cur_other_cars);
-  std::optional<FrenetCar> cur_other_car_ahead =
-      GetNearestFrenetCarAheadBySCoordIfPresent(ego_car, cur_other_cars_same_lane);
+  auto&& cur_other_cars_same_lane = GetCarsInLane(ego_car.Lane(), pp_config_.lane_width_m, cur_other_cars);
+  std::optional<Car> cur_other_car_ahead =
+      GetNearestCarAheadBySCoordIfPresent(ego_car, cur_other_cars_same_lane);
 
   // check whether the safety front buffer is violated for the planned car without obstacles
   if (cur_other_car_ahead.has_value()) {
@@ -125,7 +125,7 @@ BehaviorLayer::PlanForKeepLaneState(const FrenetCar& ego_car, const std::map<Fre
     if (planned_ego_car.IsFrontBufferViolatedBy(future_other_car_ahead) || 
         planned_ego_car.IsInFrontOf(future_other_car_ahead)) {
       planned_ego_car.s_m = future_other_car_ahead.s_m - pp_config_.front_car_buffer_m;
-      planned_ego_car.vel_s_mps = future_other_car_ahead.vel_s_mps - 1.0;
+      planned_ego_car.vel_s_mps = future_other_car_ahead.vel_s_mps - 0.5;
       planned_ego_car.vel_mps = CalcAbsVelocity(planned_ego_car.vel_s_mps, planned_ego_car.vel_d_mps);
     }
   }
@@ -133,31 +133,31 @@ BehaviorLayer::PlanForKeepLaneState(const FrenetCar& ego_car, const std::map<Fre
   return planned_ego_car;
 }
 
-FrenetCar BehaviorLayer::PlanForPrepareLaneChangeLeftState(const FrenetCar& ego_car,
-                                                           const std::map<FrenetCar, FrenetCar>& predictions)
+Car BehaviorLayer::PlanForPrepareLaneChangeLeftState(const Car& ego_car,
+                                                           const std::map<Car, Car>& predictions)
 {
 
   // TODO: implement
   return PlanForKeepLaneState(ego_car, predictions);
 }
 
-FrenetCar BehaviorLayer::PlanForPrepareLaneChangeRightState(const FrenetCar& current_car,
-                                                            const std::map<FrenetCar, FrenetCar>& predictions)
+Car BehaviorLayer::PlanForPrepareLaneChangeRightState(const Car& current_car,
+                                                            const std::map<Car, Car>& predictions)
 {
   // TODO: implement
   return PlanForKeepLaneState(current_car, predictions);
 }
 
-FrenetCar BehaviorLayer::PlanForLaneChangeLeftState(const FrenetCar& current_car,
-                                                    const std::map<FrenetCar, FrenetCar>& predictions)
+Car BehaviorLayer::PlanForLaneChangeLeftState(const Car& current_car,
+                                                    const std::map<Car, Car>& predictions)
 {
-  return FrenetCar();
+  return Car();
 }
 
-FrenetCar BehaviorLayer::PlanForLaneChangeRightState(const FrenetCar& current_car,
-                                                     const std::map<FrenetCar, FrenetCar>& predictions)
+Car BehaviorLayer::PlanForLaneChangeRightState(const Car& current_car,
+                                                     const std::map<Car, Car>& predictions)
 {
-  return FrenetCar();
+  return Car();
 }
 
 

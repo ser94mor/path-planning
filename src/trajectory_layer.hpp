@@ -22,10 +22,10 @@ public:
 
   virtual ~TrajectoryLayer();
 
-  void Initialize(const FrenetCar& car);
+  void Initialize(const Car& car);
 
 
-  std::vector<FrenetCar> GetTrajectory(size_t num_points);
+  std::vector<Car> GetTrajectory(size_t num_points);
 
 private:
   std::vector<double> GetJerkMinimizingTrajectory(std::vector<double> start, std::vector<double> end, double t) const;
@@ -36,8 +36,8 @@ private:
   BehaviorLayer& behavior_layer_;
 
   bool initialized_;
-  FrenetCar ego_car_;
-  std::deque<FrenetCar> next_cars_;
+  Car ego_car_;
+  std::deque<Car> next_cars_;
 };
 
 

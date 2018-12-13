@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
   //////
   PathPlannerConfig path_planner_config = PathPlannerConfig::FromFile(path_planner_config_file, highway_map_file);
   circular_unsigned_double_t::SetGlobalMaxValue(path_planner_config.max_s_m);
-  FrenetCar::SetPathPlannerConfig(&path_planner_config);
+  Car::SetPathPlannerConfig(&path_planner_config);
 
   PIDControllerConfig pid_controller_config = PIDControllerConfig::FromFile(pid_controller_config_file);
 
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
 
 
 
-              FrenetCar car = {
+              Car car = {
                 .id = -1,
                 .state = State::KeepLane,
                 .vel_mps = vel_mps,

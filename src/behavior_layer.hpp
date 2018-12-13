@@ -20,24 +20,24 @@ public:
 
   virtual ~BehaviorLayer();
 
-  FrenetCar Plan(const FrenetCar& ego_car);
+  Car Plan(const Car& ego_car);
 
 private:
 
-  FrenetCar PlanForState(State state, const FrenetCar& ego_car, const std::map<FrenetCar, FrenetCar>& predictions);
+  Car PlanForState(State state, const Car& ego_car, const std::map<Car, Car>& predictions);
 
-  FrenetCar PlanForKeepLaneState(const FrenetCar& ego_car, const std::map<FrenetCar, FrenetCar>& predictions);
-  FrenetCar PlanForKeepLaneStateAndNoObstacles(const FrenetCar& ego_car);
+  Car PlanForKeepLaneState(const Car& ego_car, const std::map<Car, Car>& predictions);
+  Car PlanForKeepLaneStateAndNoObstacles(const Car& ego_car);
 
-  FrenetCar PlanForPrepareLaneChangeLeftState(const FrenetCar& ego_car,
-                                              const std::map<FrenetCar, FrenetCar>& predictions);
+  Car PlanForPrepareLaneChangeLeftState(const Car& ego_car,
+                                              const std::map<Car, Car>& predictions);
 
-  FrenetCar PlanForPrepareLaneChangeRightState(const FrenetCar& ego_car,
-                                               const std::map<FrenetCar, FrenetCar>& predictions);
+  Car PlanForPrepareLaneChangeRightState(const Car& ego_car,
+                                               const std::map<Car, Car>& predictions);
 
-  FrenetCar PlanForLaneChangeLeftState(const FrenetCar& ego_car, const std::map<FrenetCar, FrenetCar>& predictions);
+  Car PlanForLaneChangeLeftState(const Car& ego_car, const std::map<Car, Car>& predictions);
 
-  FrenetCar PlanForLaneChangeRightState(const FrenetCar& ego_car, const std::map<FrenetCar, FrenetCar>& predictions);
+  Car PlanForLaneChangeRightState(const Car& ego_car, const std::map<Car, Car>& predictions);
 
   const PathPlannerConfig& pp_config_;
   LocalizationLayer&       localization_layer_;
