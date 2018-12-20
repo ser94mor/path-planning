@@ -11,41 +11,41 @@
 #include <vector>
 #include <unordered_map>
 
-enum class State {
-  KeepLane,
-  PrepareLaneChangeLeft,
-  PrepareLaneChangeRight,
-  LaneChangeLeft,
-  LaneChangeRight,
-};
-
 class FSM {
 public:
+  enum class State {
+    KeepLane,
+    PrepareLaneChangeLeft,
+    PrepareLaneChangeRight,
+    LaneChangeLeft,
+    LaneChangeRight,
+  };
+
   static const std::vector<State>& GetPossibleNextStates(State state);
 
 private:
   static std::unordered_map< State, const std::vector<State> >  transition_map_;
 };
 
-inline std::ostream& operator <<(std::ostream& ostream, const State state) {
+inline std::ostream& operator <<(std::ostream& ostream, const FSM::State state) {
   switch (state) {
-    case State::KeepLane:
+    case FSM::State::KeepLane:
       ostream << "KL";
       break;
-    case State::PrepareLaneChangeLeft:
+    case FSM::State::PrepareLaneChangeLeft:
       ostream << "PLCL";
       break;
-    case State::PrepareLaneChangeRight:
+    case FSM::State::PrepareLaneChangeRight:
       ostream << "PLCR";
       break;
-    case State::LaneChangeLeft:
+    case FSM::State::LaneChangeLeft:
       ostream << "LCL";
       break;
-    case State::LaneChangeRight:
+    case FSM::State::LaneChangeRight:
       ostream << "LCR";
       break;
     default:
-      std::cerr  << "operator<<() for " << typeid(state).name() <<  " must handle " << state << " case" << std::endl;
+      std::cerr  << __PRETTY_FUNCTION__ <<  " must handle " << state << " state" << std::endl;
       std::exit(EXIT_FAILURE);
   }
 

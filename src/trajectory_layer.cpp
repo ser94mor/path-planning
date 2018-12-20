@@ -84,18 +84,16 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
     throw std::logic_error("TrajectoryLayer::Initialize should be invoked before TrajectoryLayer::GetTrajectory");
   }
 
-  auto&& predictions = prediction_layer_.GetPredictions(num_points * pp_config_.frequency_s, ego_car_.time_s);
+  auto&& predictions = prediction_layer_.GetPredictions(num_points * pp_config_.frequency_s, ego_car_.T());
 
-  auto&& cur_other_cars = map_keys(predictions);
-  auto&& cur_other_cars_same_lane = GetCarsInLane(ego_car_.Lane(), pp_config_.lane_width_m, cur_other_cars);
-  std::optional<Car> cur_other_car_ahead_opt =
-      GetNearestCarAheadBySCoordIfPresent(ego_car_, cur_other_cars_same_lane);
+  auto&& cur_other_cars_current_lane = ego_car_.CarsInCurrentLane(map_keys(predictions));
+  std::optional<Car> cur_other_car_ahead_current_lane_opt = ego_car_.NearestCarAhead(cur_other_cars_current_lane);
 
-  if (cur_other_car_ahead_opt.has_value()) {
-    auto cur_other_car_ahead = cur_other_car_ahead_opt.value();
+  if (cur_other_car_ahead_current_lane_opt.has_value()) {
+    auto cur_other_car_ahead = cur_other_car_ahead_current_lane_opt.value();
 
-    if (ego_car_.IsFrontBufferViolatedBy(cur_other_car_ahead)) {
-      std::cout << typeid(this).name() << "::GetTrajectory identified the front buffer violation of ego car\n"
+    if (ego_car_.IsFrontBufferViolatedBy(cur_other_car_ahead, 0.8)) {
+      std::cout << __PRETTY_FUNCTION__ << " identified the front buffer violation of ego car\n"
                 << ego_car_ << "\n by other car\n" << cur_other_car_ahead << std::endl;
       next_cars_.resize(0);
     }
@@ -116,32 +114,32 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
 
   Car planned_ego_car = behavior_layer_.Plan(ego_car_);
 
-  double ego_car_s = static_cast<double>(ego_car_.s_m);
-  double planned_ego_car_s = static_cast<double>(planned_ego_car.s_m);
+  double ego_car_s = static_cast<double>(ego_car_.S());
+  double planned_ego_car_s = static_cast<double>(planned_ego_car.S());
   if (planned_ego_car_s < ego_car_s) {
     planned_ego_car_s += pp_config_.max_s_m;
   }
 
-  double planning_time_horizon = planned_ego_car.time_s - ego_car_.time_s;
+  double planning_time_horizon = planned_ego_car.T() - ego_car_.T();
 
   std::vector<double> s_coeffs = GetJerkMinimizingTrajectory(
-      {ego_car_s, ego_car_.vel_s_mps, ego_car_.acc_s_mps2, },
-      {planned_ego_car_s, planned_ego_car.vel_s_mps, planned_ego_car.acc_s_mps2, },
+      {ego_car_s, ego_car_.Vs(), ego_car_.As(), },
+      {planned_ego_car_s, planned_ego_car.Vs(), planned_ego_car.As(), },
       planning_time_horizon
   );
 
   std::vector<double> d_coeffs = GetJerkMinimizingTrajectory(
-      { ego_car_.d_m, ego_car_.vel_d_mps, ego_car_.acc_d_mps2, },
-      { planned_ego_car.d_m, planned_ego_car.vel_d_mps, planned_ego_car.acc_d_mps2, },
+      { ego_car_.D(), ego_car_.Vd(), ego_car_.Ad(), },
+      { planned_ego_car.D(), planned_ego_car.Vd(), planned_ego_car.Ad(), },
       planning_time_horizon
   );
 
   double t = pp_config_.frequency_s;
   const double t_diff = pp_config_.frequency_s;
-  double s_prev = static_cast<double>(ego_car_.s_m);
-  double d_prev = ego_car_.d_m;
-  double vs_prev = ego_car_.vel_s_mps;
-  double vd_prev = ego_car_.vel_d_mps;
+  double s_prev = static_cast<double>(ego_car_.S());
+  double d_prev = ego_car_.D();
+  double vs_prev = ego_car_.Vs();
+  double vd_prev = ego_car_.Vd();
 
 
   for (int i = 0; i < pp_config_.trajectory_layer_queue_len - next_cars_.size(); ++i) {
@@ -149,19 +147,17 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
     double d = CalcPolynomial(d_coeffs, t);
     double vs = Calc1DVelocity(s_prev, s, t_diff);
     double vd = Calc1DVelocity(d_prev, d, t_diff);
+
     next_cars_.push_front(
-        {
-          .id = ego_car_.id,
-          .state = ego_car_.state,
-          .vel_mps = CalcAbsVelocity(vs, vd),
-          .time_s = ego_car_.time_s + t,
-          .s_m = s,
-          .d_m = d,
-          .vel_s_mps = vs,
-          .vel_d_mps = vd,
-          .acc_s_mps2 = Calc1DAcc(vs_prev, vs, t_diff),
-          .acc_d_mps2 = Calc1DAcc(vd_prev, vd, t_diff),
-        }
+      Car::Builder(planned_ego_car)
+        .SetTime(ego_car_.T() + t)
+        .SetCoordinateS(s)
+        .SetCoordinateD(d)
+        .SetVelocityS(vs)
+        .SetVelocityD(vd)
+        .SetAccelerationS(Calc1DAcc(vs_prev, vs, t_diff))
+        .SetAccelerationD(Calc1DAcc(vd_prev, vd, t_diff))
+      .Build()
     );
     s_prev = s;
     d_prev = d;

@@ -4,14 +4,14 @@
 
 #include "fsm.hpp"
 
-std::unordered_map< State, const std::vector<State> >  FSM::transition_map_{
+std::unordered_map< FSM::State, const std::vector<FSM::State> >  FSM::transition_map_{
     { State::KeepLane,               { State::KeepLane, State::PrepareLaneChangeLeft, State::PrepareLaneChangeRight } },
-    { State::PrepareLaneChangeLeft,  { State::PrepareLaneChangeLeft,  State::LaneChangeLeft,  State::KeepLane       } },
-    { State::PrepareLaneChangeRight, { State::PrepareLaneChangeRight, State::LaneChangeRight, State::KeepLane       } },
-    { State::LaneChangeLeft,         { State::LaneChangeLeft,  State::KeepLane                                      } },
-    { State::LaneChangeRight,        { State::LaneChangeRight, State::KeepLane                                      } },
+    { State::PrepareLaneChangeLeft,  { State::LaneChangeLeft,  State::PrepareLaneChangeLeft,  State::KeepLane       } },
+    { State::PrepareLaneChangeRight, { State::LaneChangeRight, State::PrepareLaneChangeRight, State::KeepLane       } },
+    { State::LaneChangeLeft,         { State::KeepLane, State::LaneChangeLeft,                                      } },
+    { State::LaneChangeRight,        { State::KeepLane, State::LaneChangeRight,                                     } },
   };
 
-const std::vector<State>& FSM::GetPossibleNextStates(State state) {
+const std::vector<FSM::State>& FSM::GetPossibleNextStates(State state) {
   return transition_map_[state];
 }

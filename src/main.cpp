@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
           {
             auto j = json::parse(s);
 
-            string event = j[0].get<string>();
+            auto event = j[0].get<string>();
 
             if (event == "telemetry")
             {
@@ -136,19 +136,18 @@ int main(int argc, char* argv[])
               double vel_s = frenet_vel[0];
               double vel_d = frenet_vel[1];
 
-
-
-              Car car = {
-                .id = -1,
-                .state = State::KeepLane,
-                .vel_mps = vel_mps,
-                .time_s = global_time_s,
-                .s_m = car_s,
-                .d_m = car_d,
-                .vel_s_mps = 0.0,       // unknown here; 0.0 only for the first time, when car is not moving
-                .vel_d_mps = 0.0,       //
-                .acc_s_mps2 = 0.0,      // unknown here; 0.0 only for the first time, when car is not moving
-                .acc_d_mps2 = 0.0,      //
+              Car car{
+                  Car::Builder()
+                      .SetId(-1)
+                      .SetState(FSM::State::KeepLane)
+                      .SetTime(global_time_s)
+                      .SetCoordinateS(car_s)
+                      .SetCoordinateD(car_d)
+                      .SetVelocityS(0.0)       // unknown here; 0.0 only for the first time, when car is not moving
+                      .SetVelocityD(0.0)       //
+                      .SetAccelerationS(0.0)   //
+                      .SetAccelerationD(0.0)   //
+                .Build()
               };
 
               std::vector< std::vector<double> > next_coords =
@@ -164,8 +163,7 @@ int main(int argc, char* argv[])
               global_time_s += path_planner.GetPathPlannerConfig().frequency_s;
 
             }
-          } else
-          {
+          } else {
             // Manual driving
             std::string msg = "42[\"manual\",{}]";
             ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);

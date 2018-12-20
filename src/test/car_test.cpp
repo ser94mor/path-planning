@@ -7,40 +7,42 @@
 #include <catch.hpp>
 #include <ostream>
 
+
 TEST_CASE("operator<<(Car)", "[car]") {
   std::ostringstream oss;
 
-  Car car = {
-    .id = -1,
-    .state = State::PrepareLaneChangeRight,
-    .vel_mps = 1.1,
-    .time_s = 2.2,
-    .s_m = 9.9,
-    .d_m = 10.10,
-    .vel_s_mps = 11.11,
-    .vel_d_mps = 12.12,
-    .acc_s_mps2 = 13.13,
-    .acc_d_mps2 = 14.14,
+  Car car{
+    Car::Builder()
+      .SetId(-1)
+      .SetState(FSM::State::PrepareLaneChangeRight)
+      .SetTime(2.2)
+      .SetCoordinateS(9.9)
+      .SetCoordinateD(10.10)
+      .SetVelocityS(11.11)
+      .SetVelocityD(12.12)
+      .SetAccelerationS(13.13)
+      .SetAccelerationD(14.14)
+    .Build()
   };
 
   std::string expected_res =
       "Car{\n"
-      "  .id         = -1,\n"
-      "  .state      = PLCR,\n"
-      "  .vel_mps    = 1.100000,\n"
-      "  .time_s     = 2.200000,\n"
-      "  .s_m        = 9.900000,\n"
-      "  .d_m        = 10.100000,\n"
-      "  .vel_s_mps  = 11.110000,\n"
-      "  .vel_d_mps  = 12.120000,\n"
-      "  .acc_s_mps2 = 13.130000,\n"
-      "  .acc_d_mps2 = 14.140000,\n"
+      "  .id_         = -1,\n"
+      "  .state_      = PLCR,\n"
+      "  .time_s_     = 2.200000,\n"
+      "  .s_m_        = 9.900000,\n"
+      "  .d_m_        = 10.100000,\n"
+      "  .vel_s_mps_  = 11.110000,\n"
+      "  .vel_d_mps_  = 12.120000,\n"
+      "  .acc_s_mps2_ = 13.130000,\n"
+      "  .acc_d_mps2_ = 14.140000,\n"
       "}";
 
   oss << car;
 
   REQUIRE( oss.str() == expected_res );
 }
+
 
 TEST_CASE("Car::FromVector", "[car]") {
   PathPlannerConfig config{
@@ -85,120 +87,75 @@ TEST_CASE("Car::FromVector", "[car]") {
 
   Car car = Car::FromVectorAssumingConstantVelocityAndLaneKeeping(car_vect, 2.22, config);
 
-  REQUIRE( car.id         == 12 );
-  REQUIRE( car.state      == State::KeepLane );
-  REQUIRE( car.vel_mps    == Approx(sqrt(2)) );
-  REQUIRE( car.time_s     == Approx(2.22) );
-  REQUIRE( car.s_m        == Approx(1.5*sqrt(2.0)) );
-  REQUIRE( car.d_m        == Approx(-0.5*sqrt(2.0)) );
-  REQUIRE( car.vel_s_mps  == Approx(sqrt(2.0)) );
-  REQUIRE( car.vel_d_mps  == Approx(0.0) );
-  REQUIRE( car.acc_s_mps2 == Approx(0.0) );
-  REQUIRE( car.acc_d_mps2 == Approx(0.0) );
+  REQUIRE( car.Id()    == 12 );
+  REQUIRE( car.State() == FSM::State::KeepLane );
+  REQUIRE( car.T()     == Approx(2.22) );
+  REQUIRE( car.S()     == Approx(1.5*sqrt(2.0)) );
+  REQUIRE( car.D()     == Approx(-0.5*sqrt(2.0)) );
+  REQUIRE( car.Vs()    == Approx(sqrt(2.0)) );
+  REQUIRE( car.Vd()    == Approx(0.0) );
+  REQUIRE( car.As()    == Approx(0.0) );
+  REQUIRE( car.Ad()    == Approx(0.0) );
 }
 
-TEST_CASE("GetCarsInLane", "[car]")
-{
-  PathPlannerConfig pp_config{ .lane_width_m = 4.0, };
-  Car::SetPathPlannerConfig(&pp_config);
-
-  std::vector<Car> all_cars(5);
-  all_cars[0].d_m = 3;
-  all_cars[1].d_m = 6;
-  all_cars[2].d_m = 9;
-  all_cars[3].d_m = 4.5;
-  all_cars[4].d_m = 7.5;
-
-  std::vector<Car> expected_cars_in_lane{ all_cars[1], all_cars[3], all_cars[4] };
-  REQUIRE(GetCarsInLane(1, 4, all_cars) == expected_cars_in_lane );
-
-  REQUIRE(GetCarsInLane(3, 4, all_cars).empty() );
-
-  expected_cars_in_lane = { all_cars[0] };
-  REQUIRE(GetCarsInLane(0, 4, all_cars) == expected_cars_in_lane );
-
-  expected_cars_in_lane = { all_cars[2] };
-  REQUIRE(GetCarsInLane(2, 4, all_cars) == expected_cars_in_lane );
-}
-
-TEST_CASE("GetNearestCarAheadBySCoordIfPresent", "car")
-{
-  Car ego_car{ .s_m = 1.0, };
-
-  auto res = GetNearestCarAheadBySCoordIfPresent(ego_car, {});
-  REQUIRE( !res.has_value() );
-
-  Car other_car1{ .s_m = 2.0, };
-  res = GetNearestCarAheadBySCoordIfPresent(ego_car, { other_car1 });
-  REQUIRE( (res.has_value() && res.value() == other_car1) );
-
-  Car other_car2{ .s_m = 3.0, };
-  res = GetNearestCarAheadBySCoordIfPresent(ego_car, { other_car1, other_car2 });
-  REQUIRE( (res.has_value() && res.value() == other_car1) );
-
-  res = GetNearestCarAheadBySCoordIfPresent(ego_car, { other_car2, other_car1 });
-  REQUIRE( (res.has_value() && res.value() == other_car1) );
-
-  Car other_car3{ .s_m = 0.5, };
-  res = GetNearestCarAheadBySCoordIfPresent(ego_car, { other_car3, other_car2, other_car1 });
-  REQUIRE( (res.has_value() && res.value() == other_car1) );
-}
 
 TEST_CASE("Car::LongitudinalForwardDistanceTo", "[car]")
 {
   circular_unsigned_double_t::SetGlobalMaxValue(3.0);
 
-  Car ego_car{ .s_m = 0.0, };
-  Car other_car{ .s_m = 2.9, };
+  Car ego_car{Car::Builder(Car{}).SetCoordinateS(0.0).Build() };
+  Car other_car{Car::Builder(Car{}).SetCoordinateS(2.9).Build() };
   REQUIRE( ego_car.LongitudinalForwardDistanceTo(other_car) == Approx(2.9) );
 
-  ego_car.s_m = 2.9;
-  other_car.s_m = 0.0;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(2.9).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(0.0).Build();
   REQUIRE( ego_car.LongitudinalForwardDistanceTo(other_car) == Approx(0.1) );
 
-  ego_car.s_m = 2.9;
-  other_car.s_m = 0.1;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(2.9).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(0.1).Build();
   REQUIRE( ego_car.LongitudinalForwardDistanceTo(other_car) == Approx(0.2) );
 
-  ego_car.s_m = 0.1;
-  other_car.s_m = 2.9;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(0.1).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(2.9).Build();
   REQUIRE( ego_car.LongitudinalForwardDistanceTo(other_car) == Approx(2.8) );
 }
+
 
 TEST_CASE("Car::LongitudinalBackwardDistanceTo", "[car]")
 {
   circular_unsigned_double_t::SetGlobalMaxValue(3.0);
 
-  Car ego_car{ .s_m = 0.0, };
-  Car other_car{ .s_m = 2.9, };
+  Car ego_car{Car::Builder(Car{}).SetCoordinateS(0.0).Build() };
+  Car other_car{Car::Builder(Car{}).SetCoordinateS(2.9).Build() };
   REQUIRE( ego_car.LongitudinalBackwardDistanceTo(other_car) == Approx(0.1) );
 
-  ego_car.s_m = 2.9;
-  other_car.s_m = 0.0;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(2.9).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(0.0).Build();
   REQUIRE( ego_car.LongitudinalBackwardDistanceTo(other_car) == Approx(2.9) );
 
-  ego_car.s_m = 2.9;
-  other_car.s_m = 0.1;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(2.9).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(0.1).Build();
   REQUIRE( ego_car.LongitudinalBackwardDistanceTo(other_car) == Approx(2.8) );
 
-  ego_car.s_m = 0.1;
-  other_car.s_m = 2.9;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(0.1).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(2.9).Build();
   REQUIRE( ego_car.LongitudinalBackwardDistanceTo(other_car) == Approx(0.2) );
 }
 
+
 TEST_CASE("Car::LateralDistanceTo", "[car]")
 {
-  Car ego_car{ .d_m = 1.0, };
-  Car other_car{ .d_m = 1.0, };
-
+  Car ego_car{Car::Builder(Car{}).SetCoordinateD(1.0).Build() };
+  Car other_car{Car::Builder(Car{}).SetCoordinateD(1.0).Build() };
   REQUIRE(ego_car.LateralDistanceTo(other_car) == Approx(0.0) );
 
-  other_car.d_m = 0.5;
+  other_car = Car::Builder(other_car).SetCoordinateD(0.5).Build();
   REQUIRE(ego_car.LateralDistanceTo(other_car) == Approx(0.5) );
 
-  other_car.d_m = 1.5;
+  other_car = Car::Builder(other_car).SetCoordinateD(1.5).Build();
   REQUIRE(ego_car.LateralDistanceTo(other_car) == Approx(0.5) );
 }
+
 
 TEST_CASE("Car::IsFrontBufferViolatedBy", "[car]")
 {
@@ -206,46 +163,46 @@ TEST_CASE("Car::IsFrontBufferViolatedBy", "[car]")
   Car::SetPathPlannerConfig(&pp_config);
   circular_unsigned_double_t::SetGlobalMaxValue(pp_config.max_s_m);
 
-  Car ego_car{ .s_m = 1.0, };
-  Car other_car{ .s_m = 2.0, };
+  Car ego_car{Car::Builder(Car{}).SetCoordinateS(1.0).Build() };
+  Car other_car{Car::Builder(Car{}).SetCoordinateS(2.0).Build() };
+
   pp_config.front_car_buffer_m = 1.1;
   REQUIRE( ego_car.IsFrontBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 1.0;
-  other_car.s_m = 2.0;
   pp_config.front_car_buffer_m = 0.5;
   REQUIRE( !ego_car.IsFrontBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 9.1;
-  other_car.s_m = 0.0;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(9.1).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(0.0).Build();
   pp_config.front_car_buffer_m = 1.1;
   REQUIRE( ego_car.IsFrontBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 9.1;
-  other_car.s_m = 0.1;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(9.1).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(0.1).Build();
   pp_config.front_car_buffer_m = 1.0;
   REQUIRE( !ego_car.IsFrontBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 9.0;
-  other_car.s_m = 0.0;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(9.0).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(0.0).Build();
   pp_config.front_car_buffer_m = 1.0;
   REQUIRE( !ego_car.IsFrontBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 10.0;
-  other_car.s_m = 1.0;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(10.0).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(1.0).Build();
   pp_config.front_car_buffer_m = 1.0;
   REQUIRE( !ego_car.IsFrontBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 10.5;
-  other_car.s_m = 1.5;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(10.5).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(1.5).Build();
   pp_config.front_car_buffer_m = 1.0;
   REQUIRE( !ego_car.IsFrontBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 10.5;
-  other_car.s_m = 1.0;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(10.5).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(1.0).Build();
   pp_config.front_car_buffer_m = 1.0;
   REQUIRE( ego_car.IsFrontBufferViolatedBy(other_car) );
 }
+
 
 TEST_CASE("Car::IsBackBufferViolatedBy", "[car]")
 {
@@ -253,83 +210,429 @@ TEST_CASE("Car::IsBackBufferViolatedBy", "[car]")
   Car::SetPathPlannerConfig(&pp_config);
   circular_unsigned_double_t::SetGlobalMaxValue(pp_config.max_s_m);
 
-  Car ego_car{ .s_m = 2.0, };
-  Car other_car{ .s_m = 1.0, };
+  Car ego_car{Car::Builder(Car{}).SetCoordinateS(2.0).Build() };
+  Car other_car{Car::Builder(Car{}).SetCoordinateS(1.0).Build() };
   pp_config.back_car_buffer_m = 1.1;
   REQUIRE( ego_car.IsBackBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 2.0;
-  other_car.s_m = 1.0;
   pp_config.back_car_buffer_m = 0.5;
   REQUIRE( !ego_car.IsBackBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 0.0;
-  other_car.s_m = 9.1;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(0.0).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(9.1).Build();
   pp_config.back_car_buffer_m = 1.1;
   REQUIRE( ego_car.IsBackBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 0.1;
-  other_car.s_m = 9.1;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(0.1).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(9.1).Build();
   pp_config.back_car_buffer_m = 1.0;
   REQUIRE( !ego_car.IsBackBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 0.0;
-  other_car.s_m = 9.0;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(0.0).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(9.0).Build();
   pp_config.back_car_buffer_m = 1.0;
   REQUIRE( !ego_car.IsBackBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 1.0;
-  other_car.s_m = 10.0;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(1.0).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(10.0).Build();
   pp_config.back_car_buffer_m = 1.0;
   REQUIRE( !ego_car.IsBackBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 1.5;
-  other_car.s_m = 10.5;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(1.5).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(10.5).Build();
   pp_config.back_car_buffer_m = 1.0;
   REQUIRE( !ego_car.IsBackBufferViolatedBy(other_car) );
 
-  ego_car.s_m = 1.0;
-  other_car.s_m = 10.5;
+  ego_car = Car::Builder(ego_car).SetCoordinateS(1.0).Build();
+  other_car = Car::Builder(other_car).SetCoordinateS(10.5).Build();
   pp_config.back_car_buffer_m = 1.0;
   REQUIRE( ego_car.IsBackBufferViolatedBy(other_car) );
 }
+
 
 TEST_CASE("Car::IsSideBufferViolatedBy", "[car]")
 {
   PathPlannerConfig pp_config;
   Car::SetPathPlannerConfig(&pp_config);
 
-  Car ego_car{ .d_m = 1.0, };
-  Car other_car{ .d_m = 2.0, };
+  Car ego_car{Car::Builder(Car{}).SetCoordinateD(1.0).Build() };
+  Car other_car{Car::Builder(Car{}).SetCoordinateD(2.0).Build() };
   pp_config.side_car_buffer_m = 1.0;
   REQUIRE( !ego_car.IsSideBufferViolatedBy(other_car) );
 
-  ego_car.d_m = 1.0;
-  other_car.d_m = 2.0;
+  ego_car = Car::Builder(ego_car).SetCoordinateD(1.0).Build();
+  other_car = Car::Builder(other_car).SetCoordinateD(2.0).Build();
   pp_config.side_car_buffer_m = 1.1;
   REQUIRE( ego_car.IsSideBufferViolatedBy(other_car) );
 
-  ego_car.d_m = 3.0;
-  other_car.d_m = 2.0;
+  ego_car = Car::Builder(ego_car).SetCoordinateD(3.0).Build();
+  other_car = Car::Builder(other_car).SetCoordinateD(2.0).Build();
   pp_config.side_car_buffer_m = 1.0;
   REQUIRE( !ego_car.IsSideBufferViolatedBy(other_car) );
 
-  ego_car.d_m = 3.0;
-  other_car.d_m = 2.0;
   pp_config.side_car_buffer_m = 1.1;
   REQUIRE( ego_car.IsSideBufferViolatedBy(other_car) );
 }
 
-TEST_CASE("Car::Lane", "[car]")
+
+TEST_CASE("Car::CurrentLane", "[car]")
 {
   PathPlannerConfig pp_config{ .lane_width_m = 3.0 };
   Car::SetPathPlannerConfig(&pp_config);
 
-  REQUIRE( -3 == Car{ .d_m = -8.3, }.Lane() );
-  REQUIRE( -2 == Car{ .d_m = -4.0, }.Lane() );
-  REQUIRE( -1 == Car{ .d_m = -0.1, }.Lane() );
-  REQUIRE(  0 == Car{ .d_m =  2.3, }.Lane() );
-  REQUIRE(  1 == Car{ .d_m =  3.1, }.Lane() );
-  REQUIRE(  2 == Car{ .d_m =  7.5, }.Lane() );
-  REQUIRE(  3 == Car{ .d_m = 11.0, }.Lane() );
+  REQUIRE( -3 == Car::Builder(Car{}).SetCoordinateD(-8.3).Build().CurrentLane() );
+  REQUIRE( -2 == Car::Builder(Car{}).SetCoordinateD(-4.0).Build().CurrentLane() );
+  REQUIRE( -1 == Car::Builder(Car{}).SetCoordinateD(-0.1).Build().CurrentLane() );
+  REQUIRE(  0 == Car::Builder(Car{}).SetCoordinateD(2.3).Build().CurrentLane()  );
+  REQUIRE(  1 == Car::Builder(Car{}).SetCoordinateD(3.1).Build().CurrentLane()  );
+  REQUIRE(  2 == Car::Builder(Car{}).SetCoordinateD(7.5).Build().CurrentLane()  );
+  REQUIRE(  3 == Car::Builder(Car{}).SetCoordinateD(11.0).Build().CurrentLane() );
+}
+
+
+TEST_CASE("Car::IntendedLane", "[car]")
+{
+  PathPlannerConfig pp_config{ .lane_width_m = 4.0 };
+
+  Car kl_car{Car::Builder(Car{}).SetState(FSM::State::KeepLane).Build()};
+  REQUIRE(Car::Builder(kl_car).SetCoordinateD(2.0).Build().IntendedLane() == 0 );
+  REQUIRE(Car::Builder(kl_car).SetCoordinateD(6.0).Build().IntendedLane()  == 1 );
+  REQUIRE(Car::Builder(kl_car).SetCoordinateD(10.0).Build().IntendedLane() == 2 );
+
+  Car lcl_car{Car::Builder(
+      Car::Builder(kl_car).SetState(FSM::State::PrepareLaneChangeLeft).Build())
+                  .SetState(FSM::State::LaneChangeLeft)
+                  .Build()};
+  REQUIRE(Car::Builder(lcl_car).SetState(FSM::State::KeepLane).SetCoordinateD(2.0).Build().IntendedLane() == 0 );
+  REQUIRE(Car::Builder(lcl_car).SetState(FSM::State::KeepLane).SetCoordinateD(6.0).Build().IntendedLane()  == 1 );
+  REQUIRE(Car::Builder(lcl_car).SetState(FSM::State::KeepLane).SetCoordinateD(10.0).Build().IntendedLane() == 2 );
+
+  Car lcr_car{Car::Builder(
+      Car::Builder(kl_car).SetState(FSM::State::PrepareLaneChangeRight).Build())
+                  .SetState(FSM::State::LaneChangeRight)
+                  .Build()};
+  REQUIRE(Car::Builder(lcr_car).SetState(FSM::State::KeepLane).SetCoordinateD(2.0).Build().IntendedLane() == 0 );
+  REQUIRE(Car::Builder(lcr_car).SetState(FSM::State::KeepLane).SetCoordinateD(6.0).Build().IntendedLane()  == 1 );
+  REQUIRE(Car::Builder(lcr_car).SetState(FSM::State::KeepLane).SetCoordinateD(10.0).Build().IntendedLane() == 2 );
+
+
+  Car plcl_car{Car::Builder(Car{}).SetState(FSM::State::PrepareLaneChangeLeft).Build()};
+  REQUIRE(Car::Builder(plcl_car).SetCoordinateD(2.0).Build().IntendedLane()  == -1 );
+  REQUIRE(Car::Builder(plcl_car).SetCoordinateD(6.0).Build().IntendedLane()  ==  0 );
+  REQUIRE(Car::Builder(plcl_car).SetCoordinateD(10.0).Build().IntendedLane() ==  1 );
+
+  lcl_car = Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).Build();
+  REQUIRE(Car::Builder(lcl_car).SetCoordinateD(2.0).Build().IntendedLane()  == -1 );
+  REQUIRE(Car::Builder(lcl_car).SetCoordinateD(6.0).Build().IntendedLane()  == -1 );
+  REQUIRE(Car::Builder(lcl_car).SetCoordinateD(10.0).Build().IntendedLane() == -1 );
+
+  plcl_car = Car::Builder(plcl_car).SetCoordinateD(2.0).Build();
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).Build().IntendedLane()  == -1 );
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).SetCoordinateD(-0.5).Build().IntendedLane() == -1 );
+  plcl_car = Car::Builder(Car::Builder(plcl_car).SetCoordinateD(6.0).Build()).Build();
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).Build().IntendedLane()  == 0 );
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).SetCoordinateD(2.0).Build().IntendedLane()  == 0 );
+  plcl_car = Car::Builder(Car::Builder(plcl_car).SetCoordinateD(10.0).Build()).Build();
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).Build().IntendedLane() == 1 );
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).SetCoordinateD(6.0).Build().IntendedLane() == 1 );
+
+  Car plcr_car{Car::Builder(Car{}).SetState(FSM::State::PrepareLaneChangeRight).Build()};
+  REQUIRE(Car::Builder(plcr_car).SetCoordinateD(2.0).Build().IntendedLane()  == 1 );
+  REQUIRE(Car::Builder(plcr_car).SetCoordinateD(6.0).Build().IntendedLane()  == 2 );
+  REQUIRE(Car::Builder(plcr_car).SetCoordinateD(10.0).Build().IntendedLane() == 3 );
+
+  lcr_car = Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).Build();
+  REQUIRE(Car::Builder(lcr_car).SetCoordinateD(2.0).Build().IntendedLane()  == 1 );
+  REQUIRE(Car::Builder(lcr_car).SetCoordinateD(6.0).Build().IntendedLane()  == 1 );
+  REQUIRE(Car::Builder(lcr_car).SetCoordinateD(10.0).Build().IntendedLane() == 1 );
+
+
+  plcr_car = Car::Builder(plcr_car).SetCoordinateD(2.0).Build();
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).Build().IntendedLane()  == 1 );
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).SetCoordinateD(6.0).Build().IntendedLane()  == 1 );
+  plcr_car = Car::Builder(plcr_car).SetCoordinateD(6.0).Build();
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).Build().IntendedLane()  == 2 );
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).SetCoordinateD(10.0).Build().IntendedLane()  == 2 );
+  plcr_car = Car::Builder(plcr_car).SetCoordinateD(10.0).Build();
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).Build().IntendedLane() == 3 );
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).SetCoordinateD(14.0).Build().IntendedLane() == 3 );
+}
+
+
+TEST_CASE("Car::FinalLane", "[car]")
+{
+  PathPlannerConfig pp_config{ .lane_width_m = 4.0 };
+
+  Car kl_car{Car::Builder(Car{}).SetState(FSM::State::KeepLane).Build()};
+  REQUIRE(Car::Builder(kl_car).SetCoordinateD(2.0).Build().FinalLane() == 0 );
+  REQUIRE(Car::Builder(kl_car).SetCoordinateD(6.0).Build().FinalLane()  == 1 );
+  REQUIRE(Car::Builder(kl_car).SetCoordinateD(10.0).Build().FinalLane() == 2 );
+
+  Car lcl_car{Car::Builder(
+      Car::Builder(kl_car).SetState(FSM::State::PrepareLaneChangeLeft).Build())
+                  .SetState(FSM::State::LaneChangeLeft)
+                  .Build()};
+  REQUIRE(Car::Builder(lcl_car).SetState(FSM::State::KeepLane).SetCoordinateD(2.0).Build().FinalLane() == 0 );
+  REQUIRE(Car::Builder(lcl_car).SetState(FSM::State::KeepLane).SetCoordinateD(6.0).Build().FinalLane()  == 1 );
+  REQUIRE(Car::Builder(lcl_car).SetState(FSM::State::KeepLane).SetCoordinateD(10.0).Build().FinalLane() == 2 );
+
+  Car lcr_car{Car::Builder(
+      Car::Builder(kl_car).SetState(FSM::State::PrepareLaneChangeRight).Build())
+                  .SetState(FSM::State::LaneChangeRight)
+                  .Build()};
+  REQUIRE(Car::Builder(lcr_car).SetState(FSM::State::KeepLane).SetCoordinateD(2.0).Build().FinalLane() == 0 );
+  REQUIRE(Car::Builder(lcr_car).SetState(FSM::State::KeepLane).SetCoordinateD(6.0).Build().FinalLane()  == 1 );
+  REQUIRE(Car::Builder(lcr_car).SetState(FSM::State::KeepLane).SetCoordinateD(10.0).Build().FinalLane() == 2 );
+
+
+
+  Car plcl_car{Car::Builder(Car{}).SetState(FSM::State::PrepareLaneChangeLeft).Build()};
+  REQUIRE(Car::Builder(plcl_car).SetCoordinateD(2.0).Build().FinalLane()  == 0 );
+  REQUIRE(Car::Builder(plcl_car).SetCoordinateD(6.0).Build().FinalLane()  == 1 );
+  REQUIRE(Car::Builder(plcl_car).SetCoordinateD(10.0).Build().FinalLane() == 2 );
+
+  lcl_car = Car::Builder(Car{}).SetState(FSM::State::LaneChangeLeft).Build();
+  REQUIRE(Car::Builder(lcl_car).SetCoordinateD(2.0).Build().FinalLane()  == -1 );
+  REQUIRE(Car::Builder(lcl_car).SetCoordinateD(6.0).Build().FinalLane()  == -1 );
+  REQUIRE(Car::Builder(lcl_car).SetCoordinateD(10.0).Build().FinalLane() == -1 );
+
+  plcl_car = Car::Builder(plcl_car).SetCoordinateD(2.0).Build();
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).Build().FinalLane()  == -1 );
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).SetCoordinateD(-0.5).Build().FinalLane() == -1 );
+  plcl_car = Car::Builder(Car::Builder(plcl_car).SetCoordinateD(6.0).Build()).Build();
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).Build().FinalLane()  == 0 );
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).SetCoordinateD(2.0).Build().FinalLane()  == 0 );
+  plcl_car = Car::Builder(Car::Builder(plcl_car).SetCoordinateD(10.0).Build()).Build();
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).Build().FinalLane() == 1 );
+  REQUIRE(Car::Builder(plcl_car).SetState(FSM::State::LaneChangeLeft).SetCoordinateD(6.0).Build().FinalLane() == 1 );
+
+  Car plcr_car{Car::Builder(Car{}).SetState(FSM::State::PrepareLaneChangeRight).Build()};
+  REQUIRE(Car::Builder(plcr_car).SetCoordinateD(2.0).Build().FinalLane()  == 0 );
+  REQUIRE(Car::Builder(plcr_car).SetCoordinateD(6.0).Build().FinalLane()  == 1 );
+  REQUIRE(Car::Builder(plcr_car).SetCoordinateD(10.0).Build().FinalLane() == 2 );
+
+  lcr_car = Car::Builder(Car{}).SetState(FSM::State::LaneChangeRight).Build();
+  REQUIRE(Car::Builder(lcr_car).SetCoordinateD(2.0).Build().FinalLane()  == 1 );
+  REQUIRE(Car::Builder(lcr_car).SetCoordinateD(6.0).Build().FinalLane()  == 1 );
+  REQUIRE(Car::Builder(lcr_car).SetCoordinateD(10.0).Build().FinalLane() == 1 );
+
+  plcr_car = Car::Builder(plcr_car).SetCoordinateD(2.0).Build();
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).Build().FinalLane()  == 1 );
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).SetCoordinateD(6.0).Build().FinalLane()  == 1 );
+  plcr_car = Car::Builder(plcr_car).SetCoordinateD(6.0).Build();
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).Build().FinalLane()  == 2 );
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).SetCoordinateD(10.0).Build().FinalLane()  == 2 );
+  plcr_car = Car::Builder(plcr_car).SetCoordinateD(10.0).Build();
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).Build().FinalLane() == 3 );
+  REQUIRE(Car::Builder(plcr_car).SetState(FSM::State::LaneChangeRight).SetCoordinateD(14.0).Build().FinalLane() == 3 );
+}
+
+
+TEST_CASE("Car::CarsInRegionOfInterest", "[car]")
+{
+  PathPlannerConfig pp_config{
+    .max_s_m = 100.0,
+    .region_of_interest_front_m = 20.0,
+    .region_of_interest_back_m = 10.0,
+  };
+  Car::SetPathPlannerConfig(&pp_config);
+  circular_unsigned_double_t::SetGlobalMaxValue(pp_config.max_s_m);
+
+  Car ego_car{Car::Builder(Car{}).SetCoordinateS(50.0).Build() };
+  Car car1{Car::Builder(Car{}).SetCoordinateS(60.0).Build() };
+  Car car2{Car::Builder(Car{}).SetCoordinateS(70.0).Build()  };
+  REQUIRE( ego_car.CarsInRegionOfInterest({ car1, car2, }) == std::vector{ car1, } );
+
+  ego_car = Car::Builder(ego_car).SetCoordinateS(50.0).Build();
+  car1 = Car::Builder(car1).SetCoordinateS(50.0).Build();
+  car2 = Car::Builder(car2).SetCoordinateS(69.0).Build();
+  REQUIRE( ego_car.CarsInRegionOfInterest({ car2, car1, }) == std::vector{ car2, car1, } );
+
+  Car car3{Car::Builder(Car{}).SetCoordinateS(40.0).Build()  };
+  REQUIRE( ego_car.CarsInRegionOfInterest({ car1, car2, car3, }) == std::vector{ car1, car2, car3, } );
+
+  car3 = Car::Builder(car3).SetCoordinateS(39.0).Build();
+  REQUIRE( ego_car.CarsInRegionOfInterest({ car1, car2, car3, }) == std::vector{ car1, car2, } );
+
+  ego_car = Car::Builder(ego_car).SetCoordinateS(1.0).Build();
+  car1 = Car::Builder(car1).SetCoordinateS(10.0).Build();
+  car2 = Car::Builder(car2).SetCoordinateS(30.0).Build();
+  car3 = Car::Builder(car3).SetCoordinateS(95.0).Build();
+  REQUIRE( ego_car.CarsInRegionOfInterest({ car1, car2, car3, }) == std::vector{ car1, car3, } );
+
+  ego_car = Car::Builder(ego_car).SetCoordinateS(90.0).Build();
+  car1 = Car::Builder(car1).SetCoordinateS(9.0).Build();
+  car2 = Car::Builder(car2).SetCoordinateS(30.0).Build();
+  car3 = Car::Builder(car3).SetCoordinateS(80.0).Build();
+  REQUIRE( ego_car.CarsInRegionOfInterest({ car1, car2, car3, }) == std::vector{ car1, car3, } );
+}
+
+
+TEST_CASE("Car::CarsInCurrentLane", "[car]")
+{
+  PathPlannerConfig pp_config{ .lane_width_m = 3.0 };
+  Car::SetPathPlannerConfig(&pp_config);
+
+  std::vector<Car> cars(6);
+  for (int i = 0; i < cars.size(); ++i) {
+    cars[i] = Car::Builder(cars[i]).SetCoordinateD(0.1 + 1.5 * i).Build();
+  }
+
+  Car ego_car{Car::Builder(Car{}).SetCoordinateD(4.5).Build() };
+  REQUIRE( ego_car.CarsInCurrentLane(cars) == std::vector{ cars[2], cars[3] } );
+
+  ego_car = Car::Builder(Car{}).SetCoordinateD(1.0).Build();
+  REQUIRE( ego_car.CarsInCurrentLane(cars) == std::vector{ cars[0], cars[1] } );
+
+  ego_car = Car::Builder(Car{}).SetCoordinateD(7.3).Build();
+  REQUIRE( ego_car.CarsInCurrentLane(cars) == std::vector{ cars[4], cars[5] } );
+}
+
+
+TEST_CASE("Car::CarsInIntendedLane", "[car]")
+{
+  PathPlannerConfig pp_config{ .lane_width_m = 3.0 };
+  Car::SetPathPlannerConfig(&pp_config);
+
+  std::vector<Car> cars(6);
+  for (int i = 0; i < cars.size(); ++i) {
+    cars[i] = Car::Builder(cars[i]).SetCoordinateD(0.1 + 1.5 * i).Build();
+  }
+
+  Car ego_car{Car::Builder(Car{}).SetCoordinateD(4.5).Build() };
+  REQUIRE( ego_car.CarsInIntendedLane(cars) == std::vector{ cars[2], cars[3] } );
+
+  ego_car = Car::Builder(ego_car).SetState(FSM::State::PrepareLaneChangeLeft).Build();
+  REQUIRE( ego_car.CarsInIntendedLane(cars) == std::vector{ cars[0], cars[1] } );
+  ego_car = Car::Builder(ego_car).SetState(FSM::State::LaneChangeLeft).Build();
+  REQUIRE( ego_car.CarsInIntendedLane(cars) == std::vector{ cars[0], cars[1] } );
+
+  ego_car = Car::Builder(ego_car).SetState(FSM::State::PrepareLaneChangeRight).Build();
+  REQUIRE( ego_car.CarsInIntendedLane(cars) == std::vector{ cars[4], cars[5] } );
+  ego_car = Car::Builder(ego_car).SetState(FSM::State::LaneChangeRight).Build();
+  REQUIRE( ego_car.CarsInIntendedLane(cars) == std::vector{ cars[4], cars[5] } );
+}
+
+
+TEST_CASE("Car::CarsInFinalLane", "[car]")
+{
+  PathPlannerConfig pp_config{ .lane_width_m = 3.0 };
+  Car::SetPathPlannerConfig(&pp_config);
+
+  std::vector<Car> cars(6);
+  for (int i = 0; i < cars.size(); ++i) {
+    cars[i] = Car::Builder(cars[i]).SetCoordinateD(0.1 + 1.5 * i).Build();
+  }
+
+  Car ego_car{Car::Builder(Car{}).SetCoordinateD(4.5).Build() };
+  REQUIRE( ego_car.CarsInFinalLane(cars) == std::vector{ cars[2], cars[3] } );
+  ego_car = Car::Builder(ego_car).SetState(FSM::State::PrepareLaneChangeLeft).Build();
+  REQUIRE( ego_car.CarsInFinalLane(cars) == std::vector{ cars[2], cars[3] } );
+  ego_car = Car::Builder(ego_car).SetState(FSM::State::PrepareLaneChangeRight).Build();
+  REQUIRE( ego_car.CarsInFinalLane(cars) == std::vector{ cars[2], cars[3] } );
+
+  ego_car = Car::Builder(ego_car).SetState(FSM::State::LaneChangeLeft).Build();
+  REQUIRE( ego_car.CarsInFinalLane(cars) == std::vector{ cars[0], cars[1] } );
+
+  ego_car = Car::Builder(ego_car).SetState(FSM::State::LaneChangeRight).Build();
+  REQUIRE( ego_car.CarsInFinalLane(cars) == std::vector{ cars[4], cars[5] } );
+}
+
+
+TEST_CASE("Car::NearestCarAhead", "car")
+{
+  Car ego_car{Car::Builder(Car{}).SetCoordinateS(1.0).Build() };
+
+  auto res = ego_car.NearestCarAhead({});
+  REQUIRE( !res.has_value() );
+
+  Car other_car1{Car::Builder(Car{}).SetCoordinateS(2.0).Build() };
+  res = ego_car.NearestCarAhead({ other_car1 });
+  REQUIRE( (res.has_value() && res.value() == other_car1) );
+
+  Car other_car2{Car::Builder(Car{}).SetCoordinateS(3.0).Build() };
+  res = ego_car.NearestCarAhead({ other_car1, other_car2 });
+  REQUIRE( (res.has_value() && res.value() == other_car1) );
+
+  res = ego_car.NearestCarAhead({ other_car2, other_car1 });
+  REQUIRE( (res.has_value() && res.value() == other_car1) );
+
+  Car other_car3{Car::Builder(Car{}).SetCoordinateS(0.5).Build() };
+  res = ego_car.NearestCarAhead({ other_car3, other_car2, other_car1 });
+  REQUIRE( (res.has_value() && res.value() == other_car1) );
+}
+
+
+TEST_CASE("Car::NearestCarBehind", "car")
+{
+  Car ego_car{Car::Builder(Car{}).SetCoordinateS(3.0).Build() };
+
+  auto res = ego_car.NearestCarBehind({});
+  REQUIRE( !res.has_value() );
+
+  Car other_car1{Car::Builder(Car{}).SetCoordinateS(2.0).Build() };
+  res = ego_car.NearestCarBehind({ other_car1 });
+  REQUIRE( (res.has_value() && res.value() == other_car1) );
+
+  Car other_car2{Car::Builder(Car{}).SetCoordinateS(1.0).Build() };
+  res = ego_car.NearestCarBehind({ other_car1, other_car2 });
+  REQUIRE( (res.has_value() && res.value() == other_car1) );
+
+  res = ego_car.NearestCarBehind({ other_car2, other_car1 });
+  REQUIRE( (res.has_value() && res.value() == other_car1) );
+
+  Car other_car3{Car::Builder(Car{}).SetCoordinateS(2.5).Build() };
+  res = ego_car.NearestCarBehind({ other_car3, other_car2, other_car1 });
+  REQUIRE( (res.has_value() && res.value() == other_car3) );
+}
+
+
+TEST_CASE("Car::IsInFrontOf", "[car]")
+{
+  PathPlannerConfig pp_config{
+    .max_s_m = 10.0,
+  };
+  Car::SetPathPlannerConfig(&pp_config);
+  circular_unsigned_double_t::SetGlobalMaxValue(pp_config.max_s_m);
+
+  Car ego_car{Car::Builder(Car{}).SetCoordinateS(1.0).Build() };
+  Car other_car{Car::Builder(Car{}).SetCoordinateS(4.0).Build() };
+  REQUIRE( !ego_car.IsInFrontOf(other_car) );
+
+  other_car = Car::Builder(other_car).SetCoordinateS(6.0).Build();
+  REQUIRE( !ego_car.IsInFrontOf(other_car) );
+
+  other_car = Car::Builder(other_car).SetCoordinateS(6.1).Build();;
+  REQUIRE( ego_car.IsInFrontOf(other_car) );
+
+  other_car = Car::Builder(other_car).SetCoordinateS(9.0).Build();;
+  REQUIRE( ego_car.IsInFrontOf(other_car) );
+
+  other_car = Car::Builder(other_car).SetCoordinateS(0.1).Build();;
+  REQUIRE( ego_car.IsInFrontOf(other_car) );
+}
+
+TEST_CASE("Car::IsBehind", "[car]")
+{
+  PathPlannerConfig pp_config{
+      .max_s_m = 10.0,
+  };
+  Car::SetPathPlannerConfig(&pp_config);
+  circular_unsigned_double_t::SetGlobalMaxValue(pp_config.max_s_m);
+
+  Car ego_car{Car::Builder(Car{}).SetCoordinateS(1.0).Build() };
+  Car other_car{Car::Builder(Car{}).SetCoordinateS(4.0).Build() };
+  REQUIRE( ego_car.IsBehind(other_car) );
+
+  other_car = Car::Builder(other_car).SetCoordinateS(6.0).Build();
+  REQUIRE( ego_car.IsBehind(other_car) );
+
+  other_car = Car::Builder(other_car).SetCoordinateS(6.1).Build();
+  REQUIRE( !ego_car.IsBehind(other_car) );
+
+  other_car = Car::Builder(other_car).SetCoordinateS(9.0).Build();
+  REQUIRE( !ego_car.IsBehind(other_car) );
+
+  other_car = Car::Builder(other_car).SetCoordinateS(0.1).Build();
+  REQUIRE( !ego_car.IsBehind(other_car) );
 }

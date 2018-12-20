@@ -53,7 +53,9 @@ set(sources src/main.cpp
             src/lrucache.hpp
 
             src/circular_unsigned_double_t.cpp
-            src/circular_unsigned_double_t.hpp)
+            src/circular_unsigned_double_t.hpp
+
+            src/cost_functions.hpp)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 

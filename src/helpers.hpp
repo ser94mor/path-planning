@@ -41,6 +41,7 @@ inline double Calc1DVelocity(double p1, double p2, double time)
 
 inline double Calc1DVelocity(double vel, double acc, double jerk, double t)
 {
+  // TODO: refactor; should be (prev_acc + (new_acc - prev_acc) * 0.5) * t; the same is for jerk
   acc += jerk * t / 2;
   vel += acc  * t / 2;
   return vel;
@@ -135,6 +136,11 @@ inline double CalcPolynomial(const std::vector<double>& coeffs, double x)
 inline bool IsEqual(double d1, double d2) 
 {
   return (fabs(d1 - d2) < 0.000000001);
+}
+
+
+inline double Logistic(double x) {
+  return 2.0 / (1 + exp(-x)) - 1.0;
 }
 
 

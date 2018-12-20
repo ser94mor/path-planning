@@ -17,35 +17,76 @@
 #include <algorithm>
 #include <optional>
 #include <memory>
+#include <functional>
 
+class CarBuilder;
 
 struct Car {
-  int id;
-  State state;
-  double vel_mps;
-  double time_s;
 
-  circular_unsigned_double_t s_m;
-  double d_m;
-  double vel_s_mps;
-  double vel_d_mps;
-  double acc_s_mps2;
-  double acc_d_mps2;
+private:
+  int id_;
+  FSM::State state_;
+  double time_s_;
+  circular_unsigned_double_t s_m_;
+  double d_m_;
+  double vel_s_mps_;
+  double vel_d_mps_;
+  double acc_s_mps2_;
+  double acc_d_mps2_;
+
+  int prev_current_lane_;
+
+  static const PathPlannerConfig* pp_config_;
+
+  std::vector<Car> Filter(const std::vector<Car>& cars, const std::function<bool(const Car&)>& predicate) const;
+
+public:
+  int Id() const;
+  FSM::State State() const;
+  double T() const;
+  const circular_unsigned_double_t& S() const;
+  double D() const;
+  double Vs() const;
+  double Vd() const;
+  double V() const;
+  double As() const;
+  double Ad() const;
 
   double LongitudinalForwardDistanceTo(const Car& car) const;
   double LongitudinalBackwardDistanceTo(const Car& car) const;
   double LateralDistanceTo(const Car& car) const;
 
-  bool IsFrontBufferViolatedBy(const Car& car) const;
-  bool IsBackBufferViolatedBy(const Car& car) const;
+  bool IsFrontBufferViolatedBy(const Car& car, double factor = 1.0) const;
+  bool IsBackBufferViolatedBy(const Car& car,  double factor = 1.0) const;
   bool IsSideBufferViolatedBy(const Car& car) const;
 
   bool IsInFrontOf(const Car& car) const;
   bool IsBehind(const Car& car) const;
 
-  std::vector<Car> CarsInRegionOfInterest(const std::vector<Car>& cars) const;
+  bool IsInLeftMostLane() const;
+  bool IsInRightMostLane() const;
 
-  int Lane() const;
+  int CurrentLane() const;
+  int IntendedLane() const;
+  int FinalLane() const;
+
+  std::vector<Car> CarsInRegionOfInterest(const std::vector<Car>& cars) const;
+  std::vector<Car> CarsInCurrentLane(const std::vector<Car>& cars) const;
+  std::vector<Car> CarsInIntendedLane(const std::vector<Car>& cars) const;
+  std::vector<Car> CarsInFinalLane(const std::vector<Car>& cars) const;
+
+  std::optional<Car> NearestCarAhead(const std::vector<Car>& cars) const;
+  std::optional<Car> NearestCarAheadInCurrentLane(const std::vector<Car>& cars) const;
+  std::optional<Car> NearestCarAheadInIntendedLane(const std::vector<Car>& cars) const;
+  std::optional<Car> NearestCarAheadInFinalLane(const std::vector<Car>& cars) const;
+
+  std::optional<Car> NearestCarBehind(const std::vector<Car>& cars) const;
+  std::optional<Car> NearestCarBehindInCurrentLane(const std::vector<Car>& cars) const;
+  std::optional<Car> NearestCarBehindInIntendedLane(const std::vector<Car>& cars) const;
+  std::optional<Car> NearestCarBehindInFinalLane(const std::vector<Car>& cars) const;
+
+
+  std::vector<FSM::State> PossibleNextStates() const;
 
   /**
  * @brief Transforms data provided by one item from sensor fusion vector to Car.
@@ -53,77 +94,55 @@ struct Car {
  * @return Instance of Car corresponding to this Cartesian car.
  */
   static Car
-  FromVectorAssumingConstantVelocityAndLaneKeeping(const std::vector<double>& car_info, double time,
+  FromVectorAssumingConstantVelocityAndLaneKeeping(const std::vector<double>& car_info,
+                                                   double time,
                                                    const PathPlannerConfig& config);
   static void SetPathPlannerConfig(const PathPlannerConfig* pp_config);
+  static double MaxVelocity();
+  static size_t NumberOfSettableFields();
+  static CarBuilder Builder();
+  static CarBuilder Builder(const Car& car);
 
-  static const PathPlannerConfig* pp_config_;
+  bool operator<(const Car& rhs) const;
+
+  bool operator>(const Car& rhs) const;
+
+  bool operator<=(const Car& rhs) const;
+
+  bool operator>=(const Car& rhs) const;
+
+  bool operator==(const Car& rhs) const;
+
+  bool operator!=(const Car& rhs) const;
+
+  friend std::ostream& operator<<(std::ostream& os, const Car& car);
+
+  friend class CarBuilder;
+
 };
 
 
-inline std::ostream& operator<<(std::ostream& ostream, const Car& car)
-{
-  ostream << std::fixed
-          << "Car{\n"
-          << "  .id         = " << car.id         << ",\n"
-          << "  .state      = " << car.state      << ",\n"
-          << "  .vel_mps    = " << car.vel_mps    << ",\n"
-          << "  .time_s     = " << car.time_s     << ",\n"
-          << "  .s_m        = " << car.s_m        << ",\n"
-          << "  .d_m        = " << car.d_m        << ",\n"
-          << "  .vel_s_mps  = " << car.vel_s_mps  << ",\n"
-          << "  .vel_d_mps  = " << car.vel_d_mps  << ",\n"
-          << "  .acc_s_mps2 = " << car.acc_s_mps2 << ",\n"
-          << "  .acc_d_mps2 = " << car.acc_d_mps2 << ",\n"
-          << "}";
+class CarBuilder {
 
-  return ostream;
-}
+public:
+  CarBuilder();
+  explicit CarBuilder(const Car& car);
 
+  CarBuilder& SetId(int id);
+  CarBuilder& SetState(FSM::State state);
+  CarBuilder& SetTime(double time);
+  CarBuilder& SetCoordinateS(circular_unsigned_double_t s);
+  CarBuilder& SetCoordinateD(double d);
+  CarBuilder& SetVelocityS(double vs);
+  CarBuilder& SetVelocityD(double vd);
+  CarBuilder& SetAccelerationS(double as);
+  CarBuilder& SetAccelerationD(double ad);
 
-inline bool operator==(const Car& car1, const Car& car2)
-{
-  return car1.id == car2.id                        &&
-         car1.state == car2.state                  &&
-         IsEqual(car1.vel_mps, car2.vel_mps)       &&
-         IsEqual(car1.time_s, car2.time_s)         &&
-         car1.s_m == car2.s_m                      &&
-         IsEqual(car1.d_m, car2.d_m)               &&
-         IsEqual(car1.vel_s_mps, car2.vel_s_mps)   &&
-         IsEqual(car1.vel_d_mps, car2.vel_d_mps)   &&
-         IsEqual(car1.acc_s_mps2, car2.acc_s_mps2) &&
-         IsEqual(car1.acc_d_mps2, car2.acc_d_mps2);
-}
+  const Car& Build() const;
 
-inline bool operator<(const Car& car1, const Car& car2)
-{
-  return (car1.id < car2.id);
-}
-
-inline std::vector<Car> GetCarsInLane(int lane, double lane_width, const std::vector<Car>& all_cars)
-{
-  std::vector<Car> cars_in_lane;
-  for (const auto& car : all_cars) {
-    if (car.Lane() == lane) {
-      cars_in_lane.push_back(car);
-    }
-  }
-
-  return cars_in_lane;
-}
-
-inline std::optional<Car>
-GetNearestCarAheadBySCoordIfPresent(const Car& ego_car, const std::vector<Car> cars)
-{
-  std::optional<Car> opt{std::nullopt};
-
-  for (const auto& car : cars) {
-    if (car.s_m >= ego_car.s_m && (!opt.has_value() || opt.value().s_m > car.s_m)) {
-      opt = car;
-    }
-  }
-
-  return opt;
-}
+private:
+  Car car_;
+  std::vector<bool> set_flags_;
+};
 
 #endif //PATH_PLANNING_CAR_HPP

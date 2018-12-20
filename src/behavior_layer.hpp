@@ -20,24 +20,16 @@ public:
 
   virtual ~BehaviorLayer();
 
-  Car Plan(const Car& ego_car);
+  Car Plan(const Car& ego_car) const;
 
 private:
 
-  Car PlanForState(State state, const Car& ego_car, const std::map<Car, Car>& predictions);
+  Car PlanWithNoObstacles(const Car& ego_car, double t) const;
+  std::optional<Car> PlanWithObstacles(const Car& ego_car, const std::map<Car, Car>& predictions, double t) const;
 
-  Car PlanForKeepLaneState(const Car& ego_car, const std::map<Car, Car>& predictions);
-  Car PlanForKeepLaneStateAndNoObstacles(const Car& ego_car);
+  Car PlanForState(const Car& ego_car, const std::map<Car, Car>& predictions) const;
 
-  Car PlanForPrepareLaneChangeLeftState(const Car& ego_car,
-                                              const std::map<Car, Car>& predictions);
-
-  Car PlanForPrepareLaneChangeRightState(const Car& ego_car,
-                                               const std::map<Car, Car>& predictions);
-
-  Car PlanForLaneChangeLeftState(const Car& ego_car, const std::map<Car, Car>& predictions);
-
-  Car PlanForLaneChangeRightState(const Car& ego_car, const std::map<Car, Car>& predictions);
+  Car ChooseBestPlannedEgoCar(const std::vector<Car>& ego_cars, const std::vector<Car>& other_cars) const;
 
   const PathPlannerConfig& pp_config_;
   LocalizationLayer&       localization_layer_;

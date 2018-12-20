@@ -35,7 +35,7 @@ PathPlanner::GetNextXYTrajectories(const Car& current_ego_car,
   std::cout << "\n======" << ++invocation_counter << "======\n";
 
   // update the list of characteristics of other cars
-  localization_layer_.Update(sensor_fusion, car_.time_s);
+  localization_layer_.Update(sensor_fusion, car_.T());
 
   auto prev_path_size = prev_path_x.size();
 
@@ -52,45 +52,42 @@ PathPlanner::GetNextXYTrajectories(const Car& current_ego_car,
 
   for (auto i = 0; i < config_.path_len - prev_path_size; ++i) {
 
-    if (!sufficiently_fast_moving && car_.vel_s_mps >= config_.max_speed_mps) {
+    if (!sufficiently_fast_moving && car_.Vs() >= config_.max_speed_mps) {
       sufficiently_fast_moving = true;
       trajectory_layer_.Initialize(car_);
       cars = trajectory_layer_.GetTrajectory(config_.path_len - prev_path_size);
     }
 
     if (!sufficiently_fast_moving) {
+
       // control speed using the PID controller; keep lane
+      auto s_prev = car_.S();
+      double s_vel_prev = car_.Vs();
+      double s_vel = speed_ctrl_.GetVelocity(config_.max_speed_mps, s_vel_prev, config_.frequency_s);
 
-      double s_vel = speed_ctrl_.GetVelocity(config_.max_speed_mps, car_.vel_s_mps, config_.frequency_s);
-      car_.acc_s_mps2 = Calc1DAcc(car_.vel_s_mps, s_vel, config_.frequency_s);
-      car_.vel_s_mps = s_vel;
-      car_.vel_mps = car_.vel_s_mps;
-      car_.s_m += car_.vel_s_mps * config_.frequency_s;
 
-      if (car_.s_m > config_.max_s_m) {
-        car_.s_m -= config_.max_s_m;
-      }
+      car_ = Car::Builder(car_)
+               .SetTime(current_ego_car.T() + i * config_.frequency_s)
+               .SetCoordinateS(s_prev + s_vel * config_.frequency_s)
+               .SetVelocityS(s_vel)
+               .SetAccelerationS(Calc1DAcc(s_vel_prev, s_vel, config_.frequency_s))
+             .Build();
 
-      car_.time_s = current_ego_car.time_s + i * config_.frequency_s;
-
-      std::vector<double> coords = GetXY(static_cast<double>(car_.s_m), car_.d_m, config_);
+      std::vector<double> coords = GetXY(static_cast<double>(car_.S()), car_.D(), config_);
 
       next_coords_[0][i + prev_path_size] = coords[0];
       next_coords_[1][i + prev_path_size] = coords[1];
 
     } else {
 
-      if (cars[i].s_m > config_.max_s_m) {
-        cars[i].s_m -= config_.max_s_m;
-      }
-      std::vector<double> coords = GetXY(static_cast<double>(cars[i].s_m), cars[i].d_m, config_);
+      std::vector<double> coords = GetXY(static_cast<double>(cars[i].S()), cars[i].D(), config_);
 
       next_coords_[0][i + prev_path_size] = coords[0];
       next_coords_[1][i + prev_path_size] = coords[1];
 
       car_ = cars[i];
-    }
 
+    }
 
   }
 

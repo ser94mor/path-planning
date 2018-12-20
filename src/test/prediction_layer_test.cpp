@@ -53,17 +53,18 @@ TEST_CASE("PredictionLayer::GetPredictionForCar", "[prediction_layer]")
 
     auto prediction = prediction_layer.GetPredictionForCar(car_1, 1.0);
     Car expected_car{
-      .id = 12,
-      .state = car_1.state,
-      .vel_mps = sqrt(2.0),
-      .time_s = 2.0,
-      .s_m = 3.0*sqrt(2.0)/2.0,
-      .d_m = sqrt(2.0)/2.0,
-      .vel_s_mps = sqrt(2.0),
-      .vel_d_mps = 0.0,
-      .acc_s_mps2 = 0.0,
-      .acc_d_mps2 = 0.0,
-      };
+      Car::Builder()
+        .SetId(12)
+        .SetState(car_1.State())
+        .SetTime(2.0)
+        .SetCoordinateS(3.0 * sqrt(2.0) / 2.0)
+        .SetCoordinateD(sqrt(2.0) / 2.0)
+        .SetVelocityS(sqrt(2.0))
+        .SetVelocityD(0.0)
+        .SetAccelerationS(0.0)
+        .SetAccelerationD(0.0)
+      .Build()
+    };
     REQUIRE( prediction.first == car_1 );
     REQUIRE( prediction.second == expected_car );
   }
@@ -87,16 +88,17 @@ TEST_CASE("PredictionLayer::GetPredictionsForCars", "[prediction_layer]")
     auto car_1 = localization_layer.GetCars()[0];
 
     Car expected_car_1{
-        .id = 12,
-        .state = car_1.state,
-        .vel_mps = sqrt(2.0),
-        .time_s = 2.0,
-        .s_m = 3.0*sqrt(2.0)/2.0,
-        .d_m = sqrt(2.0)/2.0,
-        .vel_s_mps = sqrt(2.0),
-        .vel_d_mps = 0.0,
-        .acc_s_mps2 = 0.0,
-        .acc_d_mps2 = 0.0,
+      Car::Builder()
+        .SetId(12)
+        .SetState(car_1.State())
+        .SetTime(2.0)
+        .SetCoordinateS(3.0 * sqrt(2.0) / 2.0)
+        .SetCoordinateD(sqrt(2.0) / 2.0)
+        .SetVelocityS(sqrt(2.0))
+        .SetVelocityD(0.0)
+        .SetAccelerationS(0.0)
+        .SetAccelerationD(0.0)
+      .Build()
     };
 
     auto predictions = prediction_layer.GetPredictionsForCars({car_1}, 1.0);
@@ -109,16 +111,17 @@ TEST_CASE("PredictionLayer::GetPredictionsForCars", "[prediction_layer]")
     predictions = prediction_layer.GetPredictionsForCars(localization_layer.GetCars(), 1.0);
 
     Car expected_car_2{
-        .id = 28,
-        .state = car_1.state,
-        .vel_mps = sqrt(2.0),
-        .time_s = 2.0,
-        .s_m = 2.5*sqrt(2.0),
-        .d_m = -sqrt(2.0)/2.0,
-        .vel_s_mps = sqrt(2.0),
-        .vel_d_mps = 0.0,
-        .acc_s_mps2 = 0.0,
-        .acc_d_mps2 = 0.0,
+      Car::Builder()
+        .SetId(28)
+        .SetState(car_1.State())
+        .SetTime(2.0)
+        .SetCoordinateS(2.5 * sqrt(2.0))
+        .SetCoordinateD(-sqrt(2.0) / 2.0)
+        .SetVelocityS(sqrt(2.0))
+        .SetVelocityD(0.0)
+        .SetAccelerationS(0.0)
+        .SetAccelerationD(0.0)
+      .Build()
     };
 
     REQUIRE( predictions.size() == 2 );
@@ -144,16 +147,17 @@ TEST_CASE("PredictionLayer::GetPredictions", "[prediction_layer]")
     auto car_1 = localization_layer.GetCars()[0];
 
     Car expected_car_1{
-        .id = 12,
-        .state = car_1.state,
-        .vel_mps = sqrt(2.0),
-        .time_s = 2.0,
-        .s_m = 1.5*sqrt(2.0),
-        .d_m = sqrt(2.0)/2.0,
-        .vel_s_mps = sqrt(2.0),
-        .vel_d_mps = 0.0,
-        .acc_s_mps2 = 0.0,
-        .acc_d_mps2 = 0.0,
+      Car::Builder()
+        .SetId(12)
+        .SetState(car_1.State())
+        .SetTime(2.0)
+        .SetCoordinateS(1.5 * sqrt(2.0))
+        .SetCoordinateD(sqrt(2.0) / 2.0)
+        .SetVelocityS(sqrt(2.0))
+        .SetVelocityD(0.0)
+        .SetAccelerationS(0.0)
+        .SetAccelerationD(0.0)
+      .Build()
     };
 
     auto predictions = prediction_layer.GetPredictions(1.0, 1.0);
@@ -166,16 +170,17 @@ TEST_CASE("PredictionLayer::GetPredictions", "[prediction_layer]")
     predictions = prediction_layer.GetPredictions(1.0, 1.0);
 
     Car expected_car_2{
-        .id = 28,
-        .state = car_1.state,
-        .vel_mps = sqrt(2.0),
-        .time_s = 2.0,
-        .s_m = 2.5*sqrt(2.0),
-        .d_m = -sqrt(2.0)/2.0,
-        .vel_s_mps = sqrt(2.0),
-        .vel_d_mps = 0.0,
-        .acc_s_mps2 = 0.0,
-        .acc_d_mps2 = 0.0,
+      Car::Builder()
+        .SetId(28)
+        .SetState(car_1.State())
+        .SetTime(2.0)
+        .SetCoordinateS(2.5 * sqrt(2.0))
+        .SetCoordinateD(-sqrt(2.0) / 2.0)
+        .SetVelocityS(sqrt(2.0))
+        .SetVelocityD(0.0)
+        .SetAccelerationS(0.0)
+        .SetAccelerationD(0.0)
+      .Build()
     };
 
     REQUIRE( predictions.size() == 2 );
@@ -192,29 +197,31 @@ TEST_CASE("PredictionLayer::GetPredictions", "[prediction_layer]")
     predictions = prediction_layer.GetPredictions(2.0, 3.0);
 
     Car expected_car_3{
-        .id = 12,
-        .state = car_1.state,
-        .vel_mps = sqrt(2.0),
-        .time_s = 5.0,
-        .s_m = 3.5*sqrt(2.0),
-        .d_m = sqrt(2.0)/2.0,
-        .vel_s_mps = sqrt(2.0),
-        .vel_d_mps = 0.0,
-        .acc_s_mps2 = 0.0,
-        .acc_d_mps2 = 0.0,
+      Car::Builder()
+        .SetId(12)
+        .SetState(car_1.State())
+        .SetTime(5.0)
+        .SetCoordinateS(3.5 * sqrt(2.0))
+        .SetCoordinateD(sqrt(2.0) / 2.0)
+        .SetVelocityS(sqrt(2.0))
+        .SetVelocityD(0.0)
+        .SetAccelerationS(0.0)
+        .SetAccelerationD(0.0)
+      .Build()
     };
 
     Car expected_car_4{
-        .id = 28,
-        .state = car_1.state,
-        .vel_mps = sqrt(2.0),
-        .time_s = 5.0,
-        .s_m = 4.5*sqrt(2.0),
-        .d_m = -sqrt(2.0)/2.0,
-        .vel_s_mps = sqrt(2.0),
-        .vel_d_mps = 0.0,
-        .acc_s_mps2 = 0.0,
-        .acc_d_mps2 = 0.0,
+      Car::Builder()
+        .SetId(28)
+        .SetState(car_1.State())
+        .SetTime(5.0)
+        .SetCoordinateS(4.5 * sqrt(2.0))
+        .SetCoordinateD(-sqrt(2.0) / 2.0)
+        .SetVelocityS(sqrt(2.0))
+        .SetVelocityD(0.0)
+        .SetAccelerationS(0.0)
+        .SetAccelerationD(0.0)
+      .Build()
     };
 
     REQUIRE( predictions.size() == 2 );
