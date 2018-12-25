@@ -27,15 +27,15 @@ TEST_CASE("operator<<(Car)", "[car]") {
 
   std::string expected_res =
       "Car{\n"
-      "  .id_         = -1,\n"
-      "  .state_      = PLCR,\n"
-      "  .time_s_     = 2.200000,\n"
-      "  .s_m_        = 9.900000,\n"
-      "  .d_m_        = 10.100000,\n"
-      "  .vel_s_mps_  = 11.110000,\n"
-      "  .vel_d_mps_  = 12.120000,\n"
-      "  .acc_s_mps2_ = 13.130000,\n"
-      "  .acc_d_mps2_ = 14.140000,\n"
+      "  .id         = -1,\n"
+      "  .state      = PLCR,\n"
+      "  .time_s     = 2.200000,\n"
+      "  .s_m        = 9.900000,\n"
+      "  .d_m        = 10.100000,\n"
+      "  .vel_s_mps  = 11.110000,\n"
+      "  .vel_d_mps  = 12.120000,\n"
+      "  .acc_s_mps2 = 13.130000,\n"
+      "  .acc_d_mps2 = 14.140000,\n"
       "}";
 
   oss << car;
@@ -96,6 +96,20 @@ TEST_CASE("Car::FromVector", "[car]") {
   REQUIRE( car.Vd()    == Approx(0.0) );
   REQUIRE( car.As()    == Approx(0.0) );
   REQUIRE( car.Ad()    == Approx(0.0) );
+}
+
+
+TEST_CASE("Car::V", "[car]")
+{
+  REQUIRE( Car::Builder(Car{}).SetVelocityS(2.0).SetVelocityD(5.0).Build().V() == Approx(sqrt(29.0)) );
+  REQUIRE( Car::Builder(Car{}).SetVelocityS(5.0).SetVelocityD(2.0).Build().V() == Approx(sqrt(29.0)) );
+}
+
+
+TEST_CASE("Car::A", "[car]")
+{
+  REQUIRE( Car::Builder(Car{}).SetAccelerationS(2.0).SetAccelerationD(5.0).Build().A() == Approx(sqrt(29.0)) );
+  REQUIRE( Car::Builder(Car{}).SetAccelerationS(5.0).SetAccelerationD(2.0).Build().A() == Approx(sqrt(29.0)) );
 }
 
 
@@ -635,4 +649,81 @@ TEST_CASE("Car::IsBehind", "[car]")
 
   other_car = Car::Builder(other_car).SetCoordinateS(0.1).Build();
   REQUIRE( !ego_car.IsBehind(other_car) );
+}
+
+
+
+
+TEST_CASE() {
+  std::map<Car, Car> cars{ { Car::Builder()
+                               .SetId(1)
+                               .SetState(FSM::State::KeepLane)
+                               .SetTime(2.0)
+                               .SetCoordinateS(1.0)
+                               .SetCoordinateD(0.5)
+                               .SetVelocityS(30.0)
+                               .SetVelocityD(0.1)
+                               .SetAccelerationS(0.45)
+                               .SetAccelerationD(0.0)
+                             .Build(),
+                             Car::Builder()
+                               .SetId(1)
+                               .SetState(FSM::State::KeepLane)
+                               .SetTime(4.0)
+                               .SetCoordinateS(5.0)
+                               .SetCoordinateD(0.7)
+                               .SetVelocityS(40.0)
+                               .SetVelocityD(0.7)
+                               .SetAccelerationS(0.0)
+                               .SetAccelerationD(0.38)
+                             .Build(), },
+                           { Car::Builder()
+                               .SetId(2)
+                               .SetState(FSM::State::LaneChangeRight)
+                               .SetTime(2.0)
+                               .SetCoordinateS(1.0)
+                               .SetCoordinateD(0.5)
+                               .SetVelocityS(34.0)
+                               .SetVelocityD(0.7)
+                               .SetAccelerationS(10.0)
+                               .SetAccelerationD(7.4)
+                             .Build(),
+                             Car::Builder()
+                               .SetId(2)
+                               .SetState(FSM::State::LaneChangeLeft)
+                               .SetTime(4.0)
+                               .SetCoordinateS(67.0)
+                               .SetCoordinateD(3.0)
+                               .SetVelocityS(70.0)
+                               .SetVelocityD(0.0)
+                               .SetAccelerationS(0.01)
+                               .SetAccelerationD(0.02)
+                             .Build(), },
+                         };
+
+  std::string expected{"Car{                          Car{\n"
+                       "  .id         = 1,              .id         = 1,\n"
+                       "  .state      = KL,             .state      = KL,\n"
+                       "  .time_s     = 2.000000,       .time_s     = 4.000000,\n"
+                       "  .s_m        = 1.000000,       .s_m        = 5.000000,\n"
+                       "  .d_m        = 0.500000,       .d_m        = 0.700000,\n"
+                       "  .vel_s_mps  = 30.000000,      .vel_s_mps  = 40.000000,\n"
+                       "  .vel_d_mps  = 0.100000,       .vel_d_mps  = 0.700000,\n"
+                       "  .acc_s_mps2 = 0.450000,       .acc_s_mps2 = 0.000000,\n"
+                       "  .acc_d_mps2 = 0.000000,       .acc_d_mps2 = 0.380000,\n"
+                       "}                             }\n"
+                       "\n"
+                       "Car{                          Car{\n"
+                       "  .id         = 2,              .id         = 2,\n"
+                       "  .state      = LCR,            .state      = LCL,\n"
+                       "  .time_s     = 2.000000,       .time_s     = 4.000000,\n"
+                       "  .s_m        = 1.000000,       .s_m        = 7.000000,\n"
+                       "  .d_m        = 0.500000,       .d_m        = 3.000000,\n"
+                       "  .vel_s_mps  = 34.000000,      .vel_s_mps  = 70.000000,\n"
+                       "  .vel_d_mps  = 0.700000,       .vel_d_mps  = 0.000000,\n"
+                       "  .acc_s_mps2 = 10.000000,      .acc_s_mps2 = 0.010000,\n"
+                       "  .acc_d_mps2 = 7.400000,       .acc_d_mps2 = 0.020000,\n"
+                       "}                             }"};
+
+  REQUIRE(expected == Car::CarMapToString(cars));
 }

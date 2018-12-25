@@ -39,6 +39,7 @@ private:
   static const PathPlannerConfig* pp_config_;
 
   std::vector<Car> Filter(const std::vector<Car>& cars, const std::function<bool(const Car&)>& predicate) const;
+  std::vector<Car> CarsInRange(const std::vector<Car>& cars, double lower, double upper) const;
 
 public:
   int Id() const;
@@ -51,6 +52,7 @@ public:
   double V() const;
   double As() const;
   double Ad() const;
+  double A() const;
 
   double LongitudinalForwardDistanceTo(const Car& car) const;
   double LongitudinalBackwardDistanceTo(const Car& car) const;
@@ -59,6 +61,7 @@ public:
   bool IsFrontBufferViolatedBy(const Car& car, double factor = 1.0) const;
   bool IsBackBufferViolatedBy(const Car& car,  double factor = 1.0) const;
   bool IsSideBufferViolatedBy(const Car& car) const;
+  bool AreLongitudinalBuffersViolatedBy(const std::vector<Car>& cars, double factor = 1.0) const;
 
   bool IsInFrontOf(const Car& car) const;
   bool IsBehind(const Car& car) const;
@@ -71,6 +74,7 @@ public:
   int FinalLane() const;
 
   std::vector<Car> CarsInRegionOfInterest(const std::vector<Car>& cars) const;
+  std::vector<Car> CarsInLongitudinalBuffers(const std::vector<Car>& cars, double factor = 1.0) const;
   std::vector<Car> CarsInCurrentLane(const std::vector<Car>& cars) const;
   std::vector<Car> CarsInIntendedLane(const std::vector<Car>& cars) const;
   std::vector<Car> CarsInFinalLane(const std::vector<Car>& cars) const;
@@ -97,6 +101,7 @@ public:
   FromVectorAssumingConstantVelocityAndLaneKeeping(const std::vector<double>& car_info,
                                                    double time,
                                                    const PathPlannerConfig& config);
+  static std::string CarMapToString(const std::map<Car, Car>& cars);
   static void SetPathPlannerConfig(const PathPlannerConfig* pp_config);
   static double MaxVelocity();
   static size_t NumberOfSettableFields();
@@ -114,6 +119,8 @@ public:
   bool operator==(const Car& rhs) const;
 
   bool operator!=(const Car& rhs) const;
+
+  std::string str() const;
 
   friend std::ostream& operator<<(std::ostream& os, const Car& car);
 

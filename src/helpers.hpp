@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <vector>
 #include <map>
+#include <numeric>
 
 
 template<typename T, typename U> std::vector<T> map_keys(const std::map<T, U>& map) {
@@ -75,6 +76,12 @@ inline double Calc2DVectorLen(double x1, double x2)
 inline double CalcAbsVelocity(double vx, double vy)
 {
   return Calc2DVectorLen(vx, vy);
+}
+
+
+inline double EuclideanNorm(const std::vector<double>& v)
+{
+  return std::sqrt(std::inner_product(v.begin(), v.end(), v.begin(), 0.0));
 }
 
 
