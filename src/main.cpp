@@ -131,11 +131,6 @@ int main(int argc, char* argv[])
               double vel_x_mps = vel_mps * cos(yaw_rad);
               double vel_y_mps = vel_mps * sin(yaw_rad);
 
-              auto frenet_vel = GetFrenetSpeed(car_s, car_d, car_x, car_y, vel_x_mps, vel_y_mps,
-                                               path_planner.GetPathPlannerConfig());
-              double vel_s = frenet_vel[0];
-              double vel_d = frenet_vel[1];
-
               Car car{
                   Car::Builder()
                       .SetId(-1)

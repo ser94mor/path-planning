@@ -25,7 +25,7 @@ Car Car::FromVectorAssumingConstantVelocityAndLaneKeeping(const std::vector<doub
            .SetTime(time)
            .SetCoordinateS(car_info[5])
            .SetCoordinateD(car_info[6])
-           .SetVelocityS(CalcAbsVelocity(car_info[3], car_info[4])) // lane keeping
+           .SetVelocityS(EuclideanNorm({ car_info[3], car_info[4], })) // lane keeping
            .SetVelocityD(0.0)                                       //
            .SetAccelerationS(0.0)               // constant velocity
            .SetAccelerationD(0.0)               //

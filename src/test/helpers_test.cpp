@@ -148,3 +148,13 @@ TEST_CASE("map_vals", "[helpers]")
 
   REQUIRE( map_vals<int, double>({}).empty() );
 }
+
+
+TEST_CASE("CalcPolynomialDerivative", "[helpers]")
+{
+  REQUIRE(Approx(6.0) == CalcPolynomialDerivative({1,2,3,}, 1.0, 0.0));
+  REQUIRE(Approx(8.0) == CalcPolynomialDerivative({1,2,3,}, 1.0, 1.0));
+  REQUIRE(Approx(6.0) == CalcPolynomialDerivative({1,2,3,}, 1.0, 2.0));
+  REQUIRE(Approx(0.0) == CalcPolynomialDerivative({1,2,3,}, 1.0, 3.0));
+  REQUIRE(Approx(0.0) == CalcPolynomialDerivative({1,2,3,}, 1.0, 4.0));
+}

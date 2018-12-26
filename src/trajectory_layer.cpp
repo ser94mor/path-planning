@@ -92,7 +92,7 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
   if (cur_other_car_ahead_current_lane_opt.has_value()) {
     auto cur_other_car_ahead = cur_other_car_ahead_current_lane_opt.value();
 
-    if (ego_car_.IsFrontBufferViolatedBy(cur_other_car_ahead, 0.8)) {
+    if (ego_car_.IsFrontBufferViolatedBy(cur_other_car_ahead, 0.7)) {
       std::cout << __PRETTY_FUNCTION__ << " identified the front buffer violation of ego car\n"
                 << ego_car_ << "\n by other car\n" << cur_other_car_ahead << std::endl;
       next_cars_.resize(0);

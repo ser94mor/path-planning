@@ -32,16 +32,12 @@ TEST_CASE("operator<<(State)", "[fsm]") {
 }
 
 TEST_CASE("FSM::GetPossibleNextStates(State)", "[fsm]") {
-  std::vector<FSM::State>   kl{ FSM::State::KeepLane,        FSM::State::PrepareLaneChangeLeft,  FSM::State::PrepareLaneChangeRight, };
-  std::vector<FSM::State> plcl{ FSM::State::LaneChangeLeft,  FSM::State::PrepareLaneChangeLeft,  FSM::State::KeepLane,               };
-  std::vector<FSM::State> plcr{ FSM::State::LaneChangeRight, FSM::State::PrepareLaneChangeRight, FSM::State::KeepLane,               };
+  std::vector<FSM::State>   kl{ FSM::State::KeepLane,        FSM::State::LaneChangeLeft, FSM::State::LaneChangeRight, };
   std::vector<FSM::State>  lcl{ FSM::State::KeepLane,        FSM::State::LaneChangeLeft,                                             };
   std::vector<FSM::State>  lcr{ FSM::State::KeepLane,        FSM::State::LaneChangeRight,                                            };
 
   SECTION("FSM::GetPossibleNextStates produces expected results") {
     REQUIRE(FSM::GetPossibleNextStates(FSM::State::KeepLane) == kl);
-    REQUIRE(FSM::GetPossibleNextStates(FSM::State::PrepareLaneChangeLeft) == plcl);
-    REQUIRE(FSM::GetPossibleNextStates(FSM::State::PrepareLaneChangeRight) == plcr);
     REQUIRE(FSM::GetPossibleNextStates(FSM::State::LaneChangeLeft) == lcl);
     REQUIRE(FSM::GetPossibleNextStates(FSM::State::LaneChangeRight) == lcr);
   }

@@ -12,6 +12,8 @@
 #include <vector>
 #include <map>
 #include <numeric>
+#include <algorithm>
+#include <cassert>
 
 
 template<typename T, typename U> std::vector<T> map_keys(const std::map<T, U>& map) {
@@ -67,24 +69,6 @@ inline double Calc1DJerk(double p1, double p2, double p3, double p4, double time
 }
 
 
-inline double Calc2DVectorLen(double x1, double x2)
-{
-  return sqrt(x1*x1 + x2*x2);
-}
-
-
-inline double CalcAbsVelocity(double vx, double vy)
-{
-  return Calc2DVectorLen(vx, vy);
-}
-
-
-inline double EuclideanNorm(const std::vector<double>& v)
-{
-  return std::sqrt(std::inner_product(v.begin(), v.end(), v.begin(), 0.0));
-}
-
-
 // For converting back and forth between radians and degrees.
 inline constexpr double pi() { return M_PI; }
 
@@ -95,9 +79,18 @@ inline double DegToRad(double x) { return x * pi() / 180; }
 inline double RadToDeg(double x) { return x * 180 / pi(); }
 
 
-inline double CalcDistance(double x1, double y1, double x2, double y2)
+inline double EuclideanNorm(const std::vector<double>& v)
 {
-  return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+  return std::sqrt(std::inner_product(v.begin(), v.end(), v.begin(), 0.0));
+}
+
+
+inline double EuclideanMetric(const std::vector<double>& v1, const std::vector<double>& v2)
+{
+  assert(v1.size() == v2.size());
+  std::vector<double> diff(v1.size());
+  std::transform(v1.begin(), v1.end(), v2.begin(), diff.begin(), std::minus<>());
+  return std::sqrt(std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0));
 }
 
 // Convert value in miles per hour unit to meters per second.
@@ -140,6 +133,23 @@ inline double CalcPolynomial(const std::vector<double>& coeffs, double x)
 }
 
 
+inline double CalcPolynomialDerivative(const std::vector<double>& coeffs, double x, double order)
+{
+  if (order == 0) {
+    return CalcPolynomial(coeffs, x);
+  } else {
+    if (coeffs.size() <= 1) {
+      return 0.0;
+    } else {
+      std::vector<double> new_coeffs(coeffs.size() - 1);
+      std::iota(new_coeffs.begin(), new_coeffs.end(), 1.0);
+      std::transform(coeffs.begin() + 1, coeffs.end(), new_coeffs.begin(), new_coeffs.begin(), std::multiplies<>());
+      return CalcPolynomialDerivative(new_coeffs, x , --order);
+    }
+  }
+}
+
+
 inline bool IsEqual(double d1, double d2) 
 {
   return (fabs(d1 - d2) < 0.000000001);
@@ -160,9 +170,6 @@ std::vector<double> GetFrenet(double x, double y, double vx, double vy, const Pa
 std::vector<double> GetXY(double s, double d, const PathPlannerConfig& config);
 
 std::vector<double> GetVxVy(double s, double d, double vs, double vd, const PathPlannerConfig& config);
-
-std::vector<double> GetFrenetSpeed(double s, double d, double x, double y, double vel_x, double vel_y,
-                                   const PathPlannerConfig& config);
 
 
 #endif //PATH_PLANNING_HELPERS_HPP

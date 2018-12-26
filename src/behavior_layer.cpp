@@ -7,6 +7,8 @@
 
 #include <typeinfo>
 #include <cassert>
+#include <algorithm>
+#include <iostream>
 
 
 BehaviorLayer::BehaviorLayer(const PathPlannerConfig& path_planner_config,
@@ -27,29 +29,50 @@ Car BehaviorLayer::Plan(const Car& ego_car) const
   std::vector<Car> planned_ego_cars;
   for (auto state : ego_car.PossibleNextStates()) {
     Car cur_ego_car = Car::Builder(ego_car).SetState(state).Build();
+
+    std::cout << __PRETTY_FUNCTION__ << " started planning for ego car\n" << cur_ego_car << std::endl;
+
     planned_ego_cars.push_back(PlanForState(cur_ego_car, predictions));
+
+    std::cout << __PRETTY_FUNCTION__ << " finished planning; the planned car for state " << state << " is\n"
+              << planned_ego_cars[planned_ego_cars.size() - 1] << std::endl;
   }
 
+  std::map<Car, Car> cars_considered;
+  for (const auto& car: ego_car.CarsInRegionOfInterest(map_keys(predictions))) {
+    cars_considered.insert(std::make_pair(car, predictions.at(car)));
+  }
+  std::cout << __PRETTY_FUNCTION__ << " cars taken into consideration are:\n"
+            << Car::CarMapToString(cars_considered) << std::endl;
+  
   assert(!planned_ego_cars.empty());
 
-  return ChooseBestPlannedEgoCar(planned_ego_cars, map_vals(predictions));
+  return ChooseBestPlannedEgoCar(planned_ego_cars, ego_car, predictions);
 }
 
 
-Car BehaviorLayer::ChooseBestPlannedEgoCar(const std::vector<Car>& ego_cars, const std::vector<Car>& other_cars) const
+Car BehaviorLayer::ChooseBestPlannedEgoCar(std::vector<Car>& planned_ego_cars,
+                                           const Car& cur_ego_car,
+                                           const std::map<Car, Car>& predictions) const
 {
+  // sort in accordance to the final S position
+  std::stable_sort(planned_ego_cars.begin(), planned_ego_cars.end(),
+                   [](auto& car1, auto& car2) { return car1.S() > car2.S(); });
+
   std::vector<std::pair<double, Car>> cost_ego_car_map;
 
   double min_cost = std::numeric_limits<double>::max();
-  Car to_ret;
-  for (const auto& car : ego_cars) {
-    double cost = //CarAheadCost(car, other_cars) +
-                  LaneMaxSpeedCost(car, other_cars) +
-                  3 * BufferViolationCost(car, other_cars);
+  auto to_ret = planned_ego_cars[0];
+  for (int i = 0; i < planned_ego_cars.size(); ++i) {
+
+    double cost = LaneMaxSpeedCost(cur_ego_car, planned_ego_cars[i], predictions) +
+                  3 * BufferViolationCost(cur_ego_car, planned_ego_cars[i], predictions);
     if (min_cost > cost) {
       min_cost = cost;
-      to_ret = car;
+      to_ret = planned_ego_cars[i];
     }
+
+    std::cout << "COST: " << cost << " CAR:\n" << planned_ego_cars[i] << std::endl;
   }
 
   return to_ret;
@@ -63,9 +86,8 @@ Car BehaviorLayer::PlanForState(const Car& ego_car, const std::map<Car, Car>& pr
   std::optional<Car> planned_ego_car_with_obstacles =
       PlanWithObstacles(ego_car, predictions, pp_config_.behavior_planning_time_horizon_s);
 
-  if (planned_ego_car_with_obstacles.has_value() &&
-      planned_ego_car_with_obstacles.value().S() <= planned_ego_car_no_obstacles.S()) {
-    return planned_ego_car_with_obstacles.value();
+  if (planned_ego_car_with_obstacles && planned_ego_car_with_obstacles->S() <= planned_ego_car_no_obstacles.S()) {
+    return *planned_ego_car_with_obstacles;
   } else {
     return planned_ego_car_no_obstacles;
   }
@@ -108,58 +130,62 @@ Car BehaviorLayer::PlanWithNoObstacles(const Car& ego_car, double t) const
 
 
 std::optional<Car>
-BehaviorLayer::PlanWithObstacles(const Car& ego_car, const std::map<Car, Car>& predictions, double t) const
-{
-  // find another car that is directly ahead of the ego vehicle
+BehaviorLayer::PlanWithObstacles(const Car& ego_car, const std::map<Car, Car>& predictions, double t) const {
   auto&& all_cur_cars = map_keys(predictions);
+
   std::optional<Car> intended_lane_cur_car_ahead_opt = ego_car.NearestCarAheadInIntendedLane(all_cur_cars);
-  std::optional<Car> cur_other_car_ahead_final_lane_opt = ego_car.NearestCarAheadInFinalLane(all_cur_cars);
+  std::optional<Car> final_lane_other_car_ahead_opt = ego_car.NearestCarAheadInFinalLane(all_cur_cars);
 
-  std::optional<Car> planned_ego_car{std::nullopt};
+  std::optional<Car> intended_lane_cur_car_behind_opt = ego_car.NearestCarBehindInIntendedLane(all_cur_cars);
+  
+  std::optional<Car> future_car_to_follow{std::nullopt};
 
-  if (intended_lane_cur_car_ahead_opt.has_value()) {
-    auto& future_other_car_intended_lane_ahead = predictions.at(intended_lane_cur_car_ahead_opt.value());
-
-    double vel_s = future_other_car_intended_lane_ahead.Vs() - 0.5;
-    double vel_d = 0.0;
-    planned_ego_car = std::make_optional(
-        Car::Builder(ego_car)
-          .SetTime(ego_car.T() + t)
-          .SetCoordinateS(future_other_car_intended_lane_ahead.S() - pp_config_.front_car_buffer_m)
-          .SetCoordinateD((ego_car.FinalLane() + 0.5) * pp_config_.lane_width_m)
-          .SetVelocityS(vel_s)
-          .SetVelocityD(vel_d)
-          .SetAccelerationS(0.0)
-          .SetAccelerationD(0.0)
-        .Build()
-    );
-  }
-
-  if (cur_other_car_ahead_final_lane_opt.has_value()) {
-    auto& future_other_car_final_lane_ahead = predictions.at(cur_other_car_ahead_final_lane_opt.value());
-
-    if (!planned_ego_car.has_value() ||
-        (planned_ego_car.has_value() &&
-        (planned_ego_car.value().IsFrontBufferViolatedBy(future_other_car_final_lane_ahead) ||
-        planned_ego_car.value().IsInFrontOf(future_other_car_final_lane_ahead)))) {
-      double vel_s = future_other_car_final_lane_ahead.Vs() - 0.5;
-      double vel_d = 0.0;
-      planned_ego_car = std::make_optional(
-          Car::Builder(ego_car)
-            .SetTime(ego_car.T() + t)
-            .SetCoordinateS(future_other_car_final_lane_ahead.S() - pp_config_.front_car_buffer_m)
-            .SetCoordinateD((ego_car.FinalLane() + 0.5) * pp_config_.lane_width_m)
-            .SetVelocityS(vel_s)
-            .SetVelocityD(vel_d)
-            .SetAccelerationS(0.0)
-            .SetAccelerationD(0.0)
-          .Build()
-      );
+  // The worst possible position is when the nearest car behind ego vehicle violates the safety buffer.
+  // In this case we choose to go behind that car because we risk causing an accident during the lane change otherwise.
+  // This is not applicable to the lane keeping, because in this case the car behind is responsible for 
+  // maintaining a safe distance.
+  if (intended_lane_cur_car_behind_opt && ego_car.State() != FSM::State::KeepLane) {
+    if (ego_car.IsBackBufferViolatedBy(*intended_lane_cur_car_behind_opt)) {
+      future_car_to_follow = predictions.at(*intended_lane_cur_car_behind_opt);
     }
   }
 
-
-  return planned_ego_car;
+  // When we prepare for the lane change, we want our speed to be approximately equal to the speed of the car in the 
+  // intended lane. However, if our final lane is not our intended lane, this is when, in fact, our final lane equals to
+  // our current lane, we risk making an accident with the car which is currently ahead of us in our lane if its speed
+  // or position is less than that of the car in the intended lane. So, we need to adjust accordingly. 
+  if (final_lane_other_car_ahead_opt) {
+    const auto& future_final_lane_other_car_ahead = predictions.at(*final_lane_other_car_ahead_opt);
+    if (!future_car_to_follow || (future_car_to_follow->S() > future_final_lane_other_car_ahead.S())) {
+      future_car_to_follow = future_final_lane_other_car_ahead;
+    }
+  }
+  
+  // Finally, when there is no car behind in the intended lane that violates the safety buffer and when the car
+  // ahead in the final lane goes faster than the car ahead in the intended lane, we plan to follow the car in the 
+  // intended lane.
+  if (intended_lane_cur_car_ahead_opt) {
+    const auto& future_intended_lane_other_car_ahead = predictions.at(*intended_lane_cur_car_ahead_opt);
+    if (!future_car_to_follow || (future_car_to_follow->S() > future_intended_lane_other_car_ahead.S())) {
+      future_car_to_follow = future_intended_lane_other_car_ahead;
+    }
+  }
+  
+  // If we have a car to follow, plan our car to be at a safe distance behind the car to follow and with a slightly
+  // lower speed.
+  if (future_car_to_follow) {
+    return Car::Builder(ego_car)
+             .SetTime(ego_car.T() + t)
+             .SetCoordinateS(future_car_to_follow->S() - pp_config_.front_car_buffer_m)
+             .SetCoordinateD((ego_car.FinalLane() + 0.5) * pp_config_.lane_width_m)
+             .SetVelocityS(future_car_to_follow->Vs() - 0.5)
+             .SetVelocityD(0.0)
+             .SetAccelerationS(0.0)
+             .SetAccelerationD(0.0)
+           .Build();
+  } else {
+    return std::nullopt;
+  }
 }
 
 

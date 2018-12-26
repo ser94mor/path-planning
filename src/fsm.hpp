@@ -10,6 +10,7 @@
 #include <sstream>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 class FSM {
 public:
@@ -23,8 +24,13 @@ public:
 
   static const std::vector<State>& GetPossibleNextStates(State state);
 
+  static const std::unordered_set<State>& GetLaneChangingStates();
+  static const std::unordered_set<State>& GetLaneKeepingStates();
+
 private:
   static std::unordered_map< State, const std::vector<State> >  transition_map_;
+  static std::unordered_set<State> lane_changing_states_;
+  static std::unordered_set<State> lane_keeping_states_;
 };
 
 inline std::ostream& operator <<(std::ostream& ostream, const FSM::State state) {

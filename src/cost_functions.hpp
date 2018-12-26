@@ -9,44 +9,45 @@
 #include "car.hpp"
 
 
-inline double CarAheadCost(const Car& ego_car, const std::vector<Car>& other_cars)
+inline double CarAheadCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::map<Car, Car>& predictions)
 {
-  auto&& in_intr_reg_other_cars = ego_car.CarsInRegionOfInterest(other_cars);
-  auto&& cur_lane_other_cars = ego_car.CarsInCurrentLane(in_intr_reg_other_cars);
-
-  auto nearest_car_ahead_opt = ego_car.NearestCarAhead(cur_lane_other_cars);
+  auto nearest_car_ahead_opt = planned_ego_car.NearestCarAheadInFinalLane(map_vals(predictions));
   if (nearest_car_ahead_opt.has_value()) {
-    return Logistic(ego_car.LongitudinalForwardDistanceTo(nearest_car_ahead_opt.value()));
+    return Logistic(planned_ego_car.LongitudinalForwardDistanceTo(nearest_car_ahead_opt.value()));
   } else {
     return 0.0;
+
   }
 }
 
 
-inline double LaneMaxSpeedCost(const Car& ego_car, const std::vector<Car>& other_cars)
+inline double LaneMaxSpeedCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::map<Car, Car>& predictions)
 {
-  auto&& in_intr_reg_other_cars = ego_car.CarsInRegionOfInterest(other_cars);
-  auto&& intended_lane_other_cars = ego_car.CarsInIntendedLane(in_intr_reg_other_cars);
+  auto intended_lane_nearest_car_ahead_opt = planned_ego_car.NearestCarAheadInIntendedLane(map_vals(predictions));
+  auto current_lane_nearest_car_ahead_opt  = planned_ego_car.NearestCarAheadInCurrentLane(map_vals(predictions));
 
-  auto nearest_car_ahead_opt = ego_car.NearestCarAhead(intended_lane_other_cars);
+  double intended_lane_velocity = planned_ego_car.IsFrontBufferViolatedBy(*intended_lane_nearest_car_ahead_opt, 3.0) ?
+                                  intended_lane_nearest_car_ahead_opt->Vs() : Car::MaxVelocity();
+  double current_lane_velocity  = planned_ego_car.IsFrontBufferViolatedBy(*current_lane_nearest_car_ahead_opt, 3.0) ?
+                                  current_lane_nearest_car_ahead_opt->Vs() : Car::MaxVelocity();
 
-  if (nearest_car_ahead_opt.has_value() && ego_car.IsFrontBufferViolatedBy(nearest_car_ahead_opt.value(), 3.0)) {
-    return (Car::MaxVelocity() - nearest_car_ahead_opt.value().Vs()) / Car::MaxVelocity();
-  } else {
+  if (intended_lane_velocity >= Car::MaxVelocity()) {
     return 0.0;
+  } else {
+    return (Car::MaxVelocity() - intended_lane_velocity) / Car::MaxVelocity();
   }
 }
 
 
-inline double BufferViolationCost(const Car& ego_car, const std::vector<Car>& other_cars)
+inline double BufferViolationCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::map<Car, Car>& predictions)
 {
-  auto nearest_car_ahead_in_final_lane_opt = ego_car.NearestCarAheadInFinalLane(other_cars);
-  auto nearest_car_behind_in_final_lane_opt = ego_car.NearestCarBehindInFinalLane(other_cars);
+  auto planned_nearest_car_ahead_in_final_lane_opt = planned_ego_car.NearestCarAheadInFinalLane(map_vals(predictions));
+  auto planned_nearest_car_behind_in_final_lane_opt = planned_ego_car.NearestCarBehindInFinalLane(map_vals(predictions));
 
-  if ( (nearest_car_ahead_in_final_lane_opt.has_value() &&
-        ego_car.IsFrontBufferViolatedBy(nearest_car_ahead_in_final_lane_opt.value(), 0.9)) ||
-       (nearest_car_behind_in_final_lane_opt.has_value() &&
-        ego_car.IsBackBufferViolatedBy(nearest_car_behind_in_final_lane_opt.value(), 0.9))) {
+  if ( (planned_nearest_car_ahead_in_final_lane_opt.has_value() &&
+       planned_ego_car.IsFrontBufferViolatedBy(planned_nearest_car_ahead_in_final_lane_opt.value())) ||
+       (planned_nearest_car_behind_in_final_lane_opt.has_value() &&
+       planned_ego_car.IsBackBufferViolatedBy(planned_nearest_car_behind_in_final_lane_opt.value()))) {
     return 1.0;
   }
 

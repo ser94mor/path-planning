@@ -29,7 +29,7 @@ PredictionLayer::GetPredictionForCar(const Car& car, double t) const
 
   double vs = Calc1DVelocity(s_prev, s, time_diff);
   double vd = Calc1DVelocity(d_prev, d, time_diff);
-  double velocity = CalcAbsVelocity(vs, vd);
+  double velocity = EuclideanNorm({ vs, vd, });
 
   double time = car.T() + t;
 

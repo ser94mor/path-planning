@@ -1,7 +1,7 @@
 {
   "frequency_s"                      :      0.020,
   "min_speed_mph"                    :      0.000,
-  "max_speed_mph"                    :     47.500,
+  "max_speed_mph"                    :     46.500,
   "min_acc_mps2"                     :     -9.500,
   "max_acc_mps2"                     :      9.500,
   "min_jerk_mps3"                    :     -9.500,
@@ -12,8 +12,8 @@
   "lane_width_m"                     :      4.000,
   "max_s_m"                          :   6945.554,
   "behavior_planning_time_horizon_s" :        2.0,
-  "front_car_buffer_m"               :        3.0,
-  "back_car_buffer_m"                :        1.0,
+  "front_car_buffer_m"               :        6.0,
+  "back_car_buffer_m"                :        10.0,
   "side_car_buffer_m"                :        0.5,
   "region_of_interest_front_m"       :         50,
   "region_of_interest_back_m"        :         20
