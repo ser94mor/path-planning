@@ -114,8 +114,8 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
 
   Car planned_ego_car = behavior_layer_.Plan(ego_car_);
 
-  double ego_car_s = static_cast<double>(ego_car_.S());
-  double planned_ego_car_s = static_cast<double>(planned_ego_car.S());
+  auto ego_car_s = static_cast<double>(ego_car_.S());
+  auto planned_ego_car_s = static_cast<double>(planned_ego_car.S());
   if (planned_ego_car_s < ego_car_s) {
     planned_ego_car_s += pp_config_.max_s_m;
   }

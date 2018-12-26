@@ -55,7 +55,7 @@ Car BehaviorLayer::ChooseBestPlannedEgoCar(std::vector<Car>& planned_ego_cars,
                                            const Car& cur_ego_car,
                                            const std::map<Car, Car>& predictions) const
 {
-  // sort in accordance to the final S position
+  // sort in decreasing order of S coordinate, i.e. a car with the largest S goes first
   std::stable_sort(planned_ego_cars.begin(), planned_ego_cars.end(),
                    [](auto& car1, auto& car2) { return car1.S() > car2.S(); });
 
@@ -65,8 +65,9 @@ Car BehaviorLayer::ChooseBestPlannedEgoCar(std::vector<Car>& planned_ego_cars,
   auto to_ret = planned_ego_cars[0];
   for (int i = 0; i < planned_ego_cars.size(); ++i) {
 
-    double cost = LaneMaxSpeedCost(cur_ego_car, planned_ego_cars[i], predictions) +
-                  3 * BufferViolationCost(cur_ego_car, planned_ego_cars[i], predictions);
+    double cost = 0.1 * LaneCost(planned_ego_cars[i], predictions) + // penalize for being in certain lane
+                  0.5 * CarAheadCost(planned_ego_cars[i], predictions) +
+                  LaneMaxSpeedCost(planned_ego_cars[i], predictions);
     if (min_cost > cost) {
       min_cost = cost;
       to_ret = planned_ego_cars[i];
