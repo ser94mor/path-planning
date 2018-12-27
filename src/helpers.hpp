@@ -44,10 +44,7 @@ inline double Calc1DVelocity(double p1, double p2, double time)
 
 inline double Calc1DVelocity(double vel, double acc, double jerk, double t)
 {
-  // TODO: refactor; should be (prev_acc + (new_acc - prev_acc) * 0.5) * t; the same is for jerk
-  acc += jerk * t / 2;
-  vel += acc  * t / 2;
-  return vel;
+  return vel + acc*t + ((jerk*t)/2)*t;
 }
 
 

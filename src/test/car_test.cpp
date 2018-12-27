@@ -7,9 +7,41 @@
 #include <catch.hpp>
 #include <ostream>
 
+static PathPlannerConfig config{
+    .frequency_s = 1,
+    .min_speed_mps = 2,
+    .max_speed_mps = 3,
+    .min_acc_mps2 = 4,
+    .max_acc_mps2 = 5,
+    .min_jerk_mps3 = 6,
+    .max_jerk_mps3 = 7,
+    .path_len = 8,
+    .trajectory_layer_queue_len = 9,
+    .num_lanes = 10,
+    .lane_width_m = 11,
+    .max_s_m = 12,
+    .behavior_planning_time_horizon_s = 13,
+    .front_car_buffer_m = 5.0,
+    .back_car_buffer_m = 0.5,
+    .side_car_buffer_m = 1.0,
+    .region_of_interest_front_m = 50.0,
+    .region_of_interest_back_m = 20.0,
+    .map_wps_x_m  = {        0.0,          1.0,          2.0,          3.0,           4.0, },
+    .map_wps_y_m  = {        0.0,          1.0,          2.0,          3.0,           4.0, },
+    .map_wps_s_m  = {        0.0,      sqrt(2),      sqrt(8),     sqrt(18),      sqrt(32), },
+    .map_wps_dx_m = {  sqrt(0.5),  sqrt(0.5)+1,  sqrt(0.5)+2,  sqrt(0.5)+3,   sqrt(0.5)+4, },
+    .map_wps_dy_m = { -sqrt(0.5), -sqrt(0.5)+3, -sqrt(0.5)+6, -sqrt(0.5)+9, -sqrt(0.5)+12, },
+    .spline_s_x = {},
+    .spline_s_y = {},
+    .spline_s_dx = {},
+    .spline_s_dy = {},
+};
+
 
 TEST_CASE("operator<<(Car)", "[car]") {
   std::ostringstream oss;
+
+  Car::SetPathPlannerConfig(&config);
 
   Car car{
     Car::Builder()
@@ -27,15 +59,21 @@ TEST_CASE("operator<<(Car)", "[car]") {
 
   std::string expected_res =
       "Car{\n"
-      "  .id         = -1,\n"
-      "  .state      = PLCR,\n"
-      "  .time_s     = 2.200000,\n"
-      "  .s_m        = 9.900000,\n"
-      "  .d_m        = 10.100000,\n"
-      "  .vel_s_mps  = 11.110000,\n"
-      "  .vel_d_mps  = 12.120000,\n"
-      "  .acc_s_mps2 = 13.130000,\n"
-      "  .acc_d_mps2 = 14.140000,\n"
+      "  .id                   = -1,\n"
+      "  .state                = PLCR,\n"
+      "  .time_s               = 2.200000,\n"
+      "  .s_m                  = 9.900000,\n"
+      "  .d_m                  = 10.100000,\n"
+      "  .vel_s_mps            = 11.110000,\n"
+      "  .vel_d_mps            = 12.120000,\n"
+      "  .vel_mps              = 16.441609,\n"
+      "  .acc_s_mps2           = 13.130000,\n"
+      "  .acc_d_mps2           = 14.140000,\n"
+      "  .acc_mps2             = 19.296023,\n"
+      "  .current_lane         = 0,\n"
+      "  .intended_lane        = 1,\n"
+      "  .final_lane           = 0,\n"
+      "  .last_maneuver_time_s = 2.200000,\n"
       "}";
 
   oss << car;
@@ -45,35 +83,6 @@ TEST_CASE("operator<<(Car)", "[car]") {
 
 
 TEST_CASE("Car::FromVector", "[car]") {
-  PathPlannerConfig config{
-      .frequency_s = 1,
-      .min_speed_mps = 2,
-      .max_speed_mps = 3,
-      .min_acc_mps2 = 4,
-      .max_acc_mps2 = 5,
-      .min_jerk_mps3 = 6,
-      .max_jerk_mps3 = 7,
-      .path_len = 8,
-      .trajectory_layer_queue_len = 9,
-      .num_lanes = 10,
-      .lane_width_m = 11,
-      .max_s_m = 12,
-      .behavior_planning_time_horizon_s = 13,
-      .front_car_buffer_m = 5.0,
-      .back_car_buffer_m = 0.5,
-      .side_car_buffer_m = 1.0,
-      .region_of_interest_front_m = 50.0,
-      .region_of_interest_back_m = 20.0,
-      .map_wps_x_m  = {        0.0,          1.0,          2.0,          3.0,           4.0, },
-      .map_wps_y_m  = {        0.0,          1.0,          2.0,          3.0,           4.0, },
-      .map_wps_s_m  = {        0.0,      sqrt(2),      sqrt(8),     sqrt(18),      sqrt(32), },
-      .map_wps_dx_m = {  sqrt(0.5),  sqrt(0.5)+1,  sqrt(0.5)+2,  sqrt(0.5)+3,   sqrt(0.5)+4, },
-      .map_wps_dy_m = { -sqrt(0.5), -sqrt(0.5)+3, -sqrt(0.5)+6, -sqrt(0.5)+9, -sqrt(0.5)+12, },
-      .spline_s_x = {},
-      .spline_s_y = {},
-      .spline_s_dx = {},
-      .spline_s_dy = {},
-  };
   config.InitSplines();
 
   std::vector<double> car_vect{ 12,              /*id*/
@@ -655,6 +664,8 @@ TEST_CASE("Car::IsBehind", "[car]")
 
 
 TEST_CASE() {
+  Car::SetPathPlannerConfig(&config);
+
   std::map<Car, Car> cars{ { Car::Builder()
                                .SetId(1)
                                .SetState(FSM::State::KeepLane)
@@ -701,29 +712,41 @@ TEST_CASE() {
                              .Build(), },
                          };
 
-  std::string expected{"Car{                          Car{\n"
-                       "  .id         = 1,              .id         = 1,\n"
-                       "  .state      = KL,             .state      = KL,\n"
-                       "  .time_s     = 2.000000,       .time_s     = 4.000000,\n"
-                       "  .s_m        = 1.000000,       .s_m        = 5.000000,\n"
-                       "  .d_m        = 0.500000,       .d_m        = 0.700000,\n"
-                       "  .vel_s_mps  = 30.000000,      .vel_s_mps  = 40.000000,\n"
-                       "  .vel_d_mps  = 0.100000,       .vel_d_mps  = 0.700000,\n"
-                       "  .acc_s_mps2 = 0.450000,       .acc_s_mps2 = 0.000000,\n"
-                       "  .acc_d_mps2 = 0.000000,       .acc_d_mps2 = 0.380000,\n"
-                       "}                             }\n"
+  std::string expected{"Car{                                    Car{\n"
+                       "  .id                   = 1,              .id                   = 1,\n"
+                       "  .state                = KL,             .state                = KL,\n"
+                       "  .time_s               = 2.000000,       .time_s               = 4.000000,\n"
+                       "  .s_m                  = 1.000000,       .s_m                  = 5.000000,\n"
+                       "  .d_m                  = 0.500000,       .d_m                  = 0.700000,\n"
+                       "  .vel_s_mps            = 30.000000,      .vel_s_mps            = 40.000000,\n"
+                       "  .vel_d_mps            = 0.100000,       .vel_d_mps            = 0.700000,\n"
+                       "  .vel_mps              = 30.000167,      .vel_mps              = 40.006125,\n"
+                       "  .acc_s_mps2           = 0.450000,       .acc_s_mps2           = 0.000000,\n"
+                       "  .acc_d_mps2           = 0.000000,       .acc_d_mps2           = 0.380000,\n"
+                       "  .acc_mps2             = 0.450000,       .acc_mps2             = 0.380000,\n"
+                       "  .current_lane         = 0,              .current_lane         = 0,\n"
+                       "  .intended_lane        = 0,              .intended_lane        = 0,\n"
+                       "  .final_lane           = 0,              .final_lane           = 0,\n"
+                       "  .last_maneuver_time_s = 2.000000,       .last_maneuver_time_s = 4.000000,\n"
+                       "}                                       }\n"
                        "\n"
-                       "Car{                          Car{\n"
-                       "  .id         = 2,              .id         = 2,\n"
-                       "  .state      = LCR,            .state      = LCL,\n"
-                       "  .time_s     = 2.000000,       .time_s     = 4.000000,\n"
-                       "  .s_m        = 1.000000,       .s_m        = 7.000000,\n"
-                       "  .d_m        = 0.500000,       .d_m        = 3.000000,\n"
-                       "  .vel_s_mps  = 34.000000,      .vel_s_mps  = 70.000000,\n"
-                       "  .vel_d_mps  = 0.700000,       .vel_d_mps  = 0.000000,\n"
-                       "  .acc_s_mps2 = 10.000000,      .acc_s_mps2 = 0.010000,\n"
-                       "  .acc_d_mps2 = 7.400000,       .acc_d_mps2 = 0.020000,\n"
-                       "}                             }"};
+                       "Car{                                    Car{\n"
+                       "  .id                   = 2,              .id                   = 2,\n"
+                       "  .state                = LCR,            .state                = LCL,\n"
+                       "  .time_s               = 2.000000,       .time_s               = 4.000000,\n"
+                       "  .s_m                  = 1.000000,       .s_m                  = 7.000000,\n"
+                       "  .d_m                  = 0.500000,       .d_m                  = 3.000000,\n"
+                       "  .vel_s_mps            = 34.000000,      .vel_s_mps            = 70.000000,\n"
+                       "  .vel_d_mps            = 0.700000,       .vel_d_mps            = 0.000000,\n"
+                       "  .vel_mps              = 34.007205,      .vel_mps              = 70.000000,\n"
+                       "  .acc_s_mps2           = 10.000000,      .acc_s_mps2           = 0.010000,\n"
+                       "  .acc_d_mps2           = 7.400000,       .acc_d_mps2           = 0.020000,\n"
+                       "  .acc_mps2             = 12.440257,      .acc_mps2             = 0.022361,\n"
+                       "  .current_lane         = 0,              .current_lane         = 0,\n"
+                       "  .intended_lane        = 1,              .intended_lane        = -1,\n"
+                       "  .final_lane           = 1,              .final_lane           = -1,\n"
+                       "  .last_maneuver_time_s = 2.000000,       .last_maneuver_time_s = 4.000000,\n"
+                       "}                                       }"};
 
   REQUIRE(expected == Car::CarMapToString(cars));
 }

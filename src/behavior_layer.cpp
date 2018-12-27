@@ -98,33 +98,21 @@ Car BehaviorLayer::PlanForState(const Car& ego_car, const std::map<Car, Car>& pr
 
 Car BehaviorLayer::PlanWithNoObstacles(const Car& ego_car, double t) const
 {
-  double t_diff = pp_config_.frequency_s;
-
   double s_max_speed_at_horizon = fmin(
-      Calc1DVelocity(ego_car.Vs(), ego_car.As(), pp_config_.max_jerk_mps3, t),
-      pp_config_.max_speed_mps
-  );
-  double s_max_speed_at_horizon_prev = fmin(
-      Calc1DVelocity(ego_car.Vs(), ego_car.As(), pp_config_.max_jerk_mps3, t - t_diff),
+      Calc1DVelocity(ego_car.Vs(), ego_car.As(), pp_config_.max_jerk_mps3 / 2, t),
       pp_config_.max_speed_mps
   );
 
-  double s = Calc1DPosition(static_cast<double>(ego_car.S()), s_max_speed_at_horizon, 0.0, t);
-  double s_prev = Calc1DPosition(static_cast<double>(ego_car.S()), s_max_speed_at_horizon_prev, 0.0, t - t_diff);
+  double s = Calc1DPosition(static_cast<double>(ego_car.S()), (s_max_speed_at_horizon + ego_car.Vs()) / 2.0, 0.0, t);
 
   double d = (ego_car.FinalLane() + 0.5) * pp_config_.lane_width_m; // + 0.5 means lane center
 
-  double vs = Calc1DVelocity(s_prev, s, t_diff);
-  double vd = 0.0;
-
-  double time = ego_car.T() + t;
-
   return Car::Builder(ego_car)
-           .SetTime(time)
+           .SetTime(ego_car.T() + t)
            .SetCoordinateS(s)
            .SetCoordinateD(d)
-           .SetVelocityS(vs)
-           .SetVelocityD(vd)
+           .SetVelocityS(s_max_speed_at_horizon)
+           .SetVelocityD(0.0)
            .SetAccelerationS(0.0)
            .SetAccelerationD(0.0)
          .Build();
@@ -180,7 +168,7 @@ BehaviorLayer::PlanWithObstacles(const Car& ego_car, const std::map<Car, Car>& p
              .SetTime(ego_car.T() + t)
              .SetCoordinateS(future_car_to_follow->S() - pp_config_.front_car_buffer_m)
              .SetCoordinateD((ego_car.FinalLane() + 0.5) * pp_config_.lane_width_m)
-             .SetVelocityS(future_car_to_follow->Vs() - 0.5)
+             .SetVelocityS(future_car_to_follow->Vs() - 1.0)
              .SetVelocityD(0.0)
              .SetAccelerationS(0.0)
              .SetAccelerationD(0.0)

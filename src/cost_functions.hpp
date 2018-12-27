@@ -42,7 +42,7 @@ TimeSinceLastManeuverCost(const Car& cur_ego_car, const Car& planned_ego_car, co
 {
   if (FSM::GetLaneChangingStates().count(planned_ego_car.State()) > 0 &&
       FSM::GetLaneKeepingStates().count(cur_ego_car.State()) > 0) {
-    if (cur_ego_car.TimeSinceLastManeuver() < 2.0) {
+    if (cur_ego_car.TimeSinceLastManeuver() < 4.0) {
       return 1.0;
     }
   }

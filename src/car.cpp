@@ -139,6 +139,10 @@ std::vector<Car> Car::CarsInLongitudinalBuffers(const std::vector<Car>& cars, do
 
 int Car::CurrentLane() const
 {
+  if (!pp_config_) {
+    throw std::logic_error("Car::pp_config_ pointer must have been initialized by "
+                           "Car::SetPathPlannerConfig before");
+  }
   return static_cast<int>(floor(this->d_m_ / pp_config_->lane_width_m));
 }
 
@@ -294,15 +298,21 @@ std::ostream& operator<<(std::ostream& ostream, const Car& car)
 {
   ostream << std::fixed
           << "Car{\n"
-          << "  .id         = " << car.id_         << ",\n"
-          << "  .state      = " << car.state_      << ",\n"
-          << "  .time_s     = " << car.time_s_     << ",\n"
-          << "  .s_m        = " << car.s_m_        << ",\n"
-          << "  .d_m        = " << car.d_m_        << ",\n"
-          << "  .vel_s_mps  = " << car.vel_s_mps_  << ",\n"
-          << "  .vel_d_mps  = " << car.vel_d_mps_  << ",\n"
-          << "  .acc_s_mps2 = " << car.acc_s_mps2_ << ",\n"
-          << "  .acc_d_mps2 = " << car.acc_d_mps2_ << ",\n"
+          << "  .id                   = " << car.id_                     << ",\n"
+          << "  .state                = " << car.state_                  << ",\n"
+          << "  .time_s               = " << car.time_s_                 << ",\n"
+          << "  .s_m                  = " << car.s_m_                    << ",\n"
+          << "  .d_m                  = " << car.d_m_                    << ",\n"
+          << "  .vel_s_mps            = " << car.vel_s_mps_              << ",\n"
+          << "  .vel_d_mps            = " << car.vel_d_mps_              << ",\n"
+          << "  .vel_mps              = " << car.V()                     << ",\n"
+          << "  .acc_s_mps2           = " << car.acc_s_mps2_             << ",\n"
+          << "  .acc_d_mps2           = " << car.acc_d_mps2_             << ",\n"
+          << "  .acc_mps2             = " << car.A()                     << ",\n"
+          << "  .current_lane         = " << car.CurrentLane()           << ",\n"
+          << "  .intended_lane        = " << car.IntendedLane()          << ",\n"
+          << "  .final_lane           = " << car.FinalLane()             << ",\n"
+          << "  .last_maneuver_time_s = " << car.TimeSinceLastManeuver() << ",\n"
           << "}";
   return ostream;
 }
