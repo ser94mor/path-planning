@@ -23,7 +23,6 @@ using namespace std;
 using json = nlohmann::json;
 
 const char* kDefaultPathPlannerConfigFile{"../data/path_planner_config.json"};
-const char* kDefaultPIDControllerConfigFile{"../data/pid_controller_config.json"};
 const char* kDefaultHighwayMapFile{"../data/highway_map.csv"};
 
 
@@ -51,15 +50,13 @@ int main(int argc, char* argv[])
   // initialize file names which provide information about the environment and configuration information
   //////
   char* path_planner_config_file = const_cast<char*>(kDefaultPathPlannerConfigFile);
-  char* pid_controller_config_file = const_cast<char*>(kDefaultPIDControllerConfigFile);
   char* highway_map_file = const_cast<char*>(kDefaultHighwayMapFile);
-  if (argc == 4) {
+  if (argc == 3) {
     path_planner_config_file = argv[1];
-    pid_controller_config_file = argv[2];
-    highway_map_file = argv[3];
+    highway_map_file = argv[2];
   } else if (argc != 1) {
-    std::cerr << "either no arguments or 3 arguments should be provided---"
-                 "path planner and pid controller configuration files as well as highway map file."
+    std::cerr << "either no arguments or 2 arguments should be provided---"
+                 "path planner configuration file and highway map file."
               << std::endl;
     std::exit(1);
   }
@@ -71,11 +68,9 @@ int main(int argc, char* argv[])
   circular_unsigned_double_t::SetGlobalMaxValue(path_planner_config.max_s_m);
   Car::SetPathPlannerConfig(&path_planner_config);
 
-  PIDControllerConfig pid_controller_config = PIDControllerConfig::FromFile(pid_controller_config_file);
-
   uWS::Hub h;
 
-  PathPlanner path_planner(path_planner_config, pid_controller_config);
+  PathPlanner path_planner(path_planner_config);
   double global_time_s = 0.0;
 
   h.onMessage(

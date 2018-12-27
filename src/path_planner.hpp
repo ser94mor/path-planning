@@ -6,7 +6,6 @@
 #define PATH_PLANNING_PATHPLANNER_H
 
 #include "car.hpp"
-#include "speed_controller.hpp"
 #include "path_planner_config.hpp"
 #include "trajectory_layer.hpp"
 #include "localization_layer.hpp"
@@ -19,7 +18,7 @@ class PathPlanner {
 
 public:
 
-  PathPlanner(PathPlannerConfig config, PIDControllerConfig pid_config);
+  PathPlanner(PathPlannerConfig config);
 
   virtual ~PathPlanner();
 
@@ -38,9 +37,7 @@ private:
 
   PathPlannerConfig config_;
   std::vector< std::vector<double> > next_coords_;
-  bool invoked_;
   Car car_;
-  SpeedController speed_ctrl_;
 
   LocalizationLayer localization_layer_;
   PredictionLayer prediction_layer_;

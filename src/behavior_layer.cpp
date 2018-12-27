@@ -98,12 +98,10 @@ Car BehaviorLayer::PlanForState(const Car& ego_car, const std::map<Car, Car>& pr
 
 Car BehaviorLayer::PlanWithNoObstacles(const Car& ego_car, double t) const
 {
-  double s_max_speed_at_horizon = fmin(
-      Calc1DVelocity(ego_car.Vs(), ego_car.As(), pp_config_.max_jerk_mps3 / 2, t),
-      pp_config_.max_speed_mps
-  );
+  double s_max_speed_at_t = fmin(Calc1DVelocity(ego_car.Vs(), ego_car.As(), pp_config_.max_jerk_mps3, t),
+                                 pp_config_.max_speed_mps);
 
-  double s = Calc1DPosition(static_cast<double>(ego_car.S()), (s_max_speed_at_horizon + ego_car.Vs()) / 2.0, 0.0, t);
+  double s = Calc1DPosition(static_cast<double>(ego_car.S()), (s_max_speed_at_t + ego_car.Vs()) / 2.0, 0.0, t);
 
   double d = (ego_car.FinalLane() + 0.5) * pp_config_.lane_width_m; // + 0.5 means lane center
 
@@ -111,7 +109,7 @@ Car BehaviorLayer::PlanWithNoObstacles(const Car& ego_car, double t) const
            .SetTime(ego_car.T() + t)
            .SetCoordinateS(s)
            .SetCoordinateD(d)
-           .SetVelocityS(s_max_speed_at_horizon)
+           .SetVelocityS(s_max_speed_at_t)
            .SetVelocityD(0.0)
            .SetAccelerationS(0.0)
            .SetAccelerationD(0.0)
@@ -168,7 +166,7 @@ BehaviorLayer::PlanWithObstacles(const Car& ego_car, const std::map<Car, Car>& p
              .SetTime(ego_car.T() + t)
              .SetCoordinateS(future_car_to_follow->S() - pp_config_.front_car_buffer_m)
              .SetCoordinateD((ego_car.FinalLane() + 0.5) * pp_config_.lane_width_m)
-             .SetVelocityS(future_car_to_follow->Vs() - 1.0)
+             .SetVelocityS(future_car_to_follow->Vs() - 0.5)    // set slightly lower speed than the car's ahead
              .SetVelocityD(0.0)
              .SetAccelerationS(0.0)
              .SetAccelerationD(0.0)
