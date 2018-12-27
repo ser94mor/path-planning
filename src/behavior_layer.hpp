@@ -20,7 +20,7 @@ public:
 
   virtual ~BehaviorLayer();
 
-  Car Plan(const Car& ego_car) const;
+  std::vector<Car> Plan(const Car& ego_car) const;
 
 private:
 
@@ -29,9 +29,12 @@ private:
 
   Car PlanForState(const Car& ego_car, const std::map<Car, Car>& predictions) const;
 
-  Car ChooseBestPlannedEgoCar(std::vector<Car>& planned_ego_cars,
-                              const Car& cur_ego_car,
-                              const std::map<Car, Car>& predictions) const;
+  void SortPlannedEgoCarsByPriority(std::vector<Car>& planned_ego_cars,
+                                    const Car& cur_ego_car,
+                                    const std::map<Car, Car>& predictions) const;
+
+  double
+  PlannedEgoCarCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::map<Car, Car>& predictions) const;
 
   const PathPlannerConfig& pp_config_;
   LocalizationLayer&       localization_layer_;

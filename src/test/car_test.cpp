@@ -727,3 +727,31 @@ TEST_CASE() {
 
   REQUIRE(expected == Car::CarMapToString(cars));
 }
+
+
+TEST_CASE("Car::TimeSinceLastManeuver", "[car]")
+{
+  Car car{Car::Builder(Car{}).SetState(FSM::State::KeepLane).SetTime(0.0).Build()};
+  REQUIRE( car.TimeSinceLastManeuver() == Approx(0.0) );
+
+  car = Car::Builder(car).SetTime(3.5).Build();
+  REQUIRE( car.TimeSinceLastManeuver() == Approx(3.5) );
+
+  car = Car::Builder(car).SetState(FSM::State::LaneChangeLeft).SetTime(4.0).Build();
+  REQUIRE( car.TimeSinceLastManeuver() == Approx(4.0) );
+
+  car = Car::Builder(car).SetState(FSM::State::KeepLane).SetTime(5.0).Build();
+  REQUIRE( car.TimeSinceLastManeuver() == Approx(0.0) );
+
+  car = Car::Builder(car).SetState(FSM::State::LaneChangeRight).SetTime(5.5).Build();
+  REQUIRE( car.TimeSinceLastManeuver() == Approx(0.5) );
+
+  car = Car::Builder(car).SetState(FSM::State::LaneChangeRight).SetTime(6.0).Build();
+  REQUIRE( car.TimeSinceLastManeuver() == Approx(1.0) );
+
+  car = Car::Builder(car).SetState(FSM::State::KeepLane).SetTime(7.0).Build();
+  REQUIRE( car.TimeSinceLastManeuver() == Approx(0.0) );
+
+  car = Car::Builder(car).SetState(FSM::State::KeepLane).SetTime(8.0).Build();
+  REQUIRE( car.TimeSinceLastManeuver() == Approx(1.0) );
+}

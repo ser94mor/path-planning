@@ -15,6 +15,6 @@
   "front_car_buffer_m"               :        6.0,
   "back_car_buffer_m"                :       10.0,
   "side_car_buffer_m"                :        0.5,
-  "region_of_interest_front_m"       :         45,
+  "region_of_interest_front_m"       :         20,
   "region_of_interest_back_m"        :         20
 }

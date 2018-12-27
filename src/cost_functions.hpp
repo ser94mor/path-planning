@@ -9,7 +9,7 @@
 #include "car.hpp"
 
 
-inline double CarAheadCost(const Car& planned_ego_car, const std::map<Car, Car>& predictions)
+inline double CarAheadCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::map<Car, Car>& predictions)
 {
   auto nearest_car_ahead_opt = planned_ego_car.NearestCarAheadInIntendedLane(map_vals(predictions));
   if (nearest_car_ahead_opt.has_value()) {
@@ -21,7 +21,8 @@ inline double CarAheadCost(const Car& planned_ego_car, const std::map<Car, Car>&
 }
 
 
-inline double LaneMaxSpeedCost(const Car& planned_ego_car, const std::map<Car, Car>& predictions)
+inline double
+LaneMaxSpeedCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::map<Car, Car>& predictions)
 {
   auto intended_lane_nearest_car_ahead_opt = planned_ego_car.NearestCarAheadInIntendedLane(map_vals(predictions));
 
@@ -36,13 +37,39 @@ inline double LaneMaxSpeedCost(const Car& planned_ego_car, const std::map<Car, C
 }
 
 
-inline double LaneCost(const Car& planned_ego_car, const std::map<Car, Car>& predictions)
+inline double
+TimeSinceLastManeuverCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::map<Car, Car>& predictions)
+{
+  if (FSM::GetLaneChangingStates().count(planned_ego_car.State()) > 0 &&
+      FSM::GetLaneKeepingStates().count(cur_ego_car.State()) > 0) {
+    if (cur_ego_car.TimeSinceLastManeuver() < 2.0) {
+      return 1.0;
+    }
+  }
+
+  return 0.0;
+}
+
+
+inline double LaneCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::map<Car, Car>& predictions)
 {
   if (planned_ego_car.IsInRightMostLane()) {
     return 1.0;
   } else {
     return 0.0;
   }
+}
+
+
+inline double ProgressCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::map<Car, Car>& predictions)
+{
+  double t = planned_ego_car.T() - cur_ego_car.T();
+  double max_delta_s = Car::MaxVelocity() * t;
+  double delta_s = max_delta_s - cur_ego_car.LongitudinalForwardDistanceTo(planned_ego_car);
+  if (delta_s < 0.0) {
+    delta_s = 0.0;
+  }
+  return delta_s / max_delta_s;
 }
 
 

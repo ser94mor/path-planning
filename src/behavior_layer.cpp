@@ -22,7 +22,7 @@ BehaviorLayer::BehaviorLayer(const PathPlannerConfig& path_planner_config,
 }
 
 
-Car BehaviorLayer::Plan(const Car& ego_car) const
+std::vector<Car> BehaviorLayer::Plan(const Car& ego_car) const
 {
   const auto&& predictions = prediction_layer_.GetPredictions(pp_config_.behavior_planning_time_horizon_s, ego_car.T());
 
@@ -47,36 +47,37 @@ Car BehaviorLayer::Plan(const Car& ego_car) const
   
   assert(!planned_ego_cars.empty());
 
-  return ChooseBestPlannedEgoCar(planned_ego_cars, ego_car, predictions);
+  SortPlannedEgoCarsByPriority(planned_ego_cars, ego_car, predictions);
+
+  return planned_ego_cars;
 }
 
 
-Car BehaviorLayer::ChooseBestPlannedEgoCar(std::vector<Car>& planned_ego_cars,
-                                           const Car& cur_ego_car,
-                                           const std::map<Car, Car>& predictions) const
+double BehaviorLayer::PlannedEgoCarCost(const Car& cur_ego_car,
+                                        const Car& planned_ego_car,
+                                        const std::map<Car, Car>& predictions) const
 {
-  // sort in decreasing order of S coordinate, i.e. a car with the largest S goes first
+  return 0.1 * LaneCost(cur_ego_car, planned_ego_car, predictions) +      // penalize for being in certain lane
+         0.5 * CarAheadCost(cur_ego_car, planned_ego_car, predictions) +
+         LaneMaxSpeedCost(cur_ego_car,planned_ego_car, predictions) +
+         0.5 * ProgressCost(cur_ego_car, planned_ego_car, predictions) +
+         5.0 * TimeSinceLastManeuverCost(cur_ego_car, planned_ego_car, predictions);
+}
+
+
+void BehaviorLayer::SortPlannedEgoCarsByPriority(std::vector<Car>& planned_ego_cars, const Car& cur_ego_car,
+                                                 const std::map<Car, Car>& predictions) const
+{
+  // sort in accordance with the cost of the planned car in ascending order
   std::stable_sort(planned_ego_cars.begin(), planned_ego_cars.end(),
-                   [](auto& car1, auto& car2) { return car1.S() > car2.S(); });
+                   [&predictions, this, &cur_ego_car](const auto& car1, const auto& car2) {
+    return PlannedEgoCarCost(cur_ego_car, car1, predictions) < PlannedEgoCarCost(cur_ego_car, car2, predictions);
+  });
 
-  std::vector<std::pair<double, Car>> cost_ego_car_map;
-
-  double min_cost = std::numeric_limits<double>::max();
-  auto to_ret = planned_ego_cars[0];
-  for (int i = 0; i < planned_ego_cars.size(); ++i) {
-
-    double cost = 0.1 * LaneCost(planned_ego_cars[i], predictions) + // penalize for being in certain lane
-                  0.5 * CarAheadCost(planned_ego_cars[i], predictions) +
-                  LaneMaxSpeedCost(planned_ego_cars[i], predictions);
-    if (min_cost > cost) {
-      min_cost = cost;
-      to_ret = planned_ego_cars[i];
-    }
-
-    std::cout << "COST: " << cost << " CAR:\n" << planned_ego_cars[i] << std::endl;
+  for (const auto& planned_car : planned_ego_cars) {
+    std::cout << __PRETTY_FUNCTION__ << " cost of the " << planned_car.State() << " state is "
+              << PlannedEgoCarCost(cur_ego_car, planned_car, predictions) << '.' << std::endl;
   }
-
-  return to_ret;
 }
 
 

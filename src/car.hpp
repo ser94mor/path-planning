@@ -35,6 +35,8 @@ private:
   double acc_d_mps2_;
 
   int prev_current_lane_;
+  FSM::State prev_state_;
+  double time_of_last_lane_change_to_keep_lane_switch_s_;
 
   static const PathPlannerConfig* pp_config_;
 
@@ -53,6 +55,8 @@ public:
   double As() const;
   double Ad() const;
   double A() const;
+
+  double TimeSinceLastManeuver() const;
 
   double LongitudinalForwardDistanceTo(const Car& car) const;
   double LongitudinalBackwardDistanceTo(const Car& car) const;
@@ -145,7 +149,7 @@ public:
   CarBuilder& SetAccelerationS(double as);
   CarBuilder& SetAccelerationD(double ad);
 
-  const Car& Build() const;
+  const Car& Build();
 
 private:
   Car car_;

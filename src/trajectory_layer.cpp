@@ -112,7 +112,7 @@ TrajectoryLayer::GetTrajectory(size_t num_points)
     ego_car_ = next_cars_[0];
   }
 
-  Car planned_ego_car = behavior_layer_.Plan(ego_car_);
+  Car planned_ego_car = behavior_layer_.Plan(ego_car_)[0];
 
   auto ego_car_s = static_cast<double>(ego_car_.S());
   auto planned_ego_car_s = static_cast<double>(planned_ego_car.S());

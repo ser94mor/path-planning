@@ -531,10 +531,18 @@ std::string Car::str() const {
 }
 
 
+double Car::TimeSinceLastManeuver() const
+{
+  return this->time_s_ - this->time_of_last_lane_change_to_keep_lane_switch_s_;
+}
+
+
 CarBuilder::CarBuilder(): car_{}, set_flags_(Car::NumberOfSettableFields())
 {
   std::fill_n(set_flags_.begin(), set_flags_.size(), false);
   car_.prev_current_lane_ = -1;
+  car_.time_of_last_lane_change_to_keep_lane_switch_s_ = 0.0;
+  car_.prev_state_ = FSM::State::KeepLane;
 }
 
 
@@ -558,6 +566,8 @@ CarBuilder& CarBuilder::SetState(FSM::State state)
       car_.state_ != FSM::State::LaneChangeLeft && car_.state_ != FSM::State::LaneChangeRight) {
     car_.prev_current_lane_ = car_.CurrentLane();
   }
+
+  car_.prev_state_ = car_.state_;
 
   car_.state_ = state;
   set_flags_[1] = true;
@@ -621,12 +631,16 @@ CarBuilder& CarBuilder::SetAccelerationD(double ad)
 }
 
 
-const Car& CarBuilder::Build() const
+const Car& CarBuilder::Build()
 {
   bool all_set = std::accumulate(set_flags_.begin(), set_flags_.end(), true, std::logical_and<>());
   if (!all_set) {
     throw std::logic_error("Either all setters in CarBuilder should have been invoked "
                            "or copy constructor should have been used.");
+  }
+
+  if (FSM::GetLaneChangingStates().count(car_.prev_state_) > 0 && car_.state_ == FSM::State::KeepLane) {
+    car_.time_of_last_lane_change_to_keep_lane_switch_s_ = car_.time_s_;
   }
 
   return car_;
