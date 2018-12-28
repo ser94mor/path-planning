@@ -20,6 +20,7 @@ public:
     PrepareLaneChangeRight,
     LaneChangeLeft,
     LaneChangeRight,
+    Unknown,
   };
 
   static const std::vector<State>& GetPossibleNextStates(State state);

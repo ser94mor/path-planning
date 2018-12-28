@@ -36,7 +36,7 @@ private:
 
   int prev_current_lane_;
   FSM::State prev_state_;
-  double time_of_last_lane_change_to_keep_lane_switch_s_;
+  double last_maneuver_time_s_;
 
   static const PathPlannerConfig* pp_config_;
 

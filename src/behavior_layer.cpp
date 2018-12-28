@@ -57,11 +57,10 @@ double BehaviorLayer::PlannedEgoCarCost(const Car& cur_ego_car,
                                         const Car& planned_ego_car,
                                         const std::map<Car, Car>& predictions) const
 {
-  return 0.1 * LaneCost(cur_ego_car, planned_ego_car, predictions) +      // penalize for being in certain lane
+  return 0.0001 * LaneCost(cur_ego_car, planned_ego_car, predictions) +    // penalize for being in certain lane
          0.5 * CarAheadCost(cur_ego_car, planned_ego_car, predictions) +
          LaneMaxSpeedCost(cur_ego_car,planned_ego_car, predictions) +
-         0.5 * ProgressCost(cur_ego_car, planned_ego_car, predictions) +
-         5.0 * TimeSinceLastManeuverCost(cur_ego_car, planned_ego_car, predictions);
+         0.5 * ProgressCost(cur_ego_car, planned_ego_car, predictions);
 }
 
 

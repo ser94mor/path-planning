@@ -10,6 +10,7 @@
 #include <typeinfo>
 #include <numeric>
 #include <functional>
+#include <unordered_set>
 
 
 const PathPlannerConfig* Car::pp_config_ = nullptr;
@@ -331,14 +332,33 @@ double Car::MaxVelocity()
 
 std::vector<FSM::State> Car::PossibleNextStates() const
 {
+  if (!pp_config_) {
+    throw std::logic_error("Car::pp_config_ pointer must have been initialized by "
+                           "Car::SetPathPlannerConfig before");
+  }
+
   auto possible_next_states = FSM::GetPossibleNextStates(this->state_); // a copy of what is returned
-  possible_next_states.erase(std::remove_if(possible_next_states.begin(),
-                                            possible_next_states.end(),
-                                            [this](enum FSM::State state) {
-    return (this->IsInLeftMostLane()  && (state == FSM::State::PrepareLaneChangeLeft  || state == FSM::State::LaneChangeLeft )) ||
-           (this->IsInRightMostLane() && (state == FSM::State::PrepareLaneChangeRight || state == FSM::State::LaneChangeRight));
-                                            }),
-                             possible_next_states.end());
+  possible_next_states.erase(
+      std::remove_if(possible_next_states.begin(), possible_next_states.end(),
+        [this](enum FSM::State state) {
+          bool res = false;
+          // no state changes after recent maneuver
+          res = res || ((state != this->State() &&
+                         this->TimeSinceLastManeuver() < pp_config_->state_change_time_interval_s));
+          // no left lane changes when in left most lane
+          res = res || (this->IsInLeftMostLane() &&
+                        this->State() == FSM::State::KeepLane &&
+                        std::unordered_set{FSM::State::PrepareLaneChangeLeft,
+                                           FSM::State::LaneChangeLeft,}.count(state) > 0);
+          // no right lane changes when in right most lane
+          res = res || (this->IsInRightMostLane() &&
+                        this->State() == FSM::State::KeepLane &&
+                        std::unordered_set{FSM::State::PrepareLaneChangeRight,
+                                           FSM::State::LaneChangeRight}.count(state) > 0);
+
+          return res;
+        }),
+      possible_next_states.end());
 
   return possible_next_states;
 }
@@ -543,7 +563,7 @@ std::string Car::str() const {
 
 double Car::TimeSinceLastManeuver() const
 {
-  return this->time_s_ - this->time_of_last_lane_change_to_keep_lane_switch_s_;
+  return this->time_s_ - this->last_maneuver_time_s_;
 }
 
 
@@ -551,14 +571,16 @@ CarBuilder::CarBuilder(): car_{}, set_flags_(Car::NumberOfSettableFields())
 {
   std::fill_n(set_flags_.begin(), set_flags_.size(), false);
   car_.prev_current_lane_ = -1;
-  car_.time_of_last_lane_change_to_keep_lane_switch_s_ = 0.0;
-  car_.prev_state_ = FSM::State::KeepLane;
+  car_.last_maneuver_time_s_ = 0.0;
+  car_.prev_state_ = FSM::State::Unknown;
+  car_.state_ = FSM::State::Unknown;
 }
 
 
 CarBuilder::CarBuilder(const Car& car): car_{car}, set_flags_(Car::NumberOfSettableFields())
 {
   std::fill_n(set_flags_.begin(), set_flags_.size(), true);
+  car_.prev_state_ = car_.state_;
 }
 
 
@@ -649,8 +671,8 @@ const Car& CarBuilder::Build()
                            "or copy constructor should have been used.");
   }
 
-  if (FSM::GetLaneChangingStates().count(car_.prev_state_) > 0 && car_.state_ == FSM::State::KeepLane) {
-    car_.time_of_last_lane_change_to_keep_lane_switch_s_ = car_.time_s_;
+  if ( (car_.prev_state_ == FSM::State::Unknown) || (car_.prev_state_ != car_.state_) ) {
+    car_.last_maneuver_time_s_ = car_.time_s_;
   }
 
   return car_;

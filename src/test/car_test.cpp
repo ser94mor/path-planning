@@ -17,8 +17,8 @@ static PathPlannerConfig config{
     .max_jerk_mps3 = 7,
     .path_len = 8,
     .trajectory_layer_queue_len = 9,
-    .num_lanes = 10,
-    .lane_width_m = 11,
+    .num_lanes = 3,
+    .lane_width_m = 4.0,
     .max_s_m = 12,
     .behavior_planning_time_horizon_s = 13,
     .front_car_buffer_m = 5.0,
@@ -26,6 +26,7 @@ static PathPlannerConfig config{
     .side_car_buffer_m = 1.0,
     .region_of_interest_front_m = 50.0,
     .region_of_interest_back_m = 20.0,
+    .state_change_time_interval_s = 4.0,
     .map_wps_x_m  = {        0.0,          1.0,          2.0,          3.0,           4.0, },
     .map_wps_y_m  = {        0.0,          1.0,          2.0,          3.0,           4.0, },
     .map_wps_s_m  = {        0.0,      sqrt(2),      sqrt(8),     sqrt(18),      sqrt(32), },
@@ -70,10 +71,10 @@ TEST_CASE("operator<<(Car)", "[car]") {
       "  .acc_s_mps2           = 13.130000,\n"
       "  .acc_d_mps2           = 14.140000,\n"
       "  .acc_mps2             = 19.296023,\n"
-      "  .current_lane         = 0,\n"
-      "  .intended_lane        = 1,\n"
-      "  .final_lane           = 0,\n"
-      "  .last_maneuver_time_s = 2.200000,\n"
+      "  .current_lane         = 2,\n"
+      "  .intended_lane        = 3,\n"
+      "  .final_lane           = 2,\n"
+      "  .last_maneuver_time_s = 0.000000,\n"
       "}";
 
   oss << car;
@@ -661,9 +662,7 @@ TEST_CASE("Car::IsBehind", "[car]")
 }
 
 
-
-
-TEST_CASE() {
+TEST_CASE("Car::CarMapToString", "[car]") {
   Car::SetPathPlannerConfig(&config);
 
   std::map<Car, Car> cars{ { Car::Builder()
@@ -727,7 +726,7 @@ TEST_CASE() {
                        "  .current_lane         = 0,              .current_lane         = 0,\n"
                        "  .intended_lane        = 0,              .intended_lane        = 0,\n"
                        "  .final_lane           = 0,              .final_lane           = 0,\n"
-                       "  .last_maneuver_time_s = 2.000000,       .last_maneuver_time_s = 4.000000,\n"
+                       "  .last_maneuver_time_s = 0.000000,       .last_maneuver_time_s = 0.000000,\n"
                        "}                                       }\n"
                        "\n"
                        "Car{                                    Car{\n"
@@ -745,7 +744,7 @@ TEST_CASE() {
                        "  .current_lane         = 0,              .current_lane         = 0,\n"
                        "  .intended_lane        = 1,              .intended_lane        = -1,\n"
                        "  .final_lane           = 1,              .final_lane           = -1,\n"
-                       "  .last_maneuver_time_s = 2.000000,       .last_maneuver_time_s = 4.000000,\n"
+                       "  .last_maneuver_time_s = 0.000000,       .last_maneuver_time_s = 0.000000,\n"
                        "}                                       }"};
 
   REQUIRE(expected == Car::CarMapToString(cars));
@@ -761,20 +760,86 @@ TEST_CASE("Car::TimeSinceLastManeuver", "[car]")
   REQUIRE( car.TimeSinceLastManeuver() == Approx(3.5) );
 
   car = Car::Builder(car).SetState(FSM::State::LaneChangeLeft).SetTime(4.0).Build();
-  REQUIRE( car.TimeSinceLastManeuver() == Approx(4.0) );
+  REQUIRE( car.TimeSinceLastManeuver() == Approx(0.0) );
 
   car = Car::Builder(car).SetState(FSM::State::KeepLane).SetTime(5.0).Build();
   REQUIRE( car.TimeSinceLastManeuver() == Approx(0.0) );
 
   car = Car::Builder(car).SetState(FSM::State::LaneChangeRight).SetTime(5.5).Build();
-  REQUIRE( car.TimeSinceLastManeuver() == Approx(0.5) );
+  REQUIRE( car.TimeSinceLastManeuver() == Approx(0.0) );
 
   car = Car::Builder(car).SetState(FSM::State::LaneChangeRight).SetTime(6.0).Build();
-  REQUIRE( car.TimeSinceLastManeuver() == Approx(1.0) );
+  REQUIRE( car.TimeSinceLastManeuver() == Approx(0.5) );
 
   car = Car::Builder(car).SetState(FSM::State::KeepLane).SetTime(7.0).Build();
   REQUIRE( car.TimeSinceLastManeuver() == Approx(0.0) );
 
   car = Car::Builder(car).SetState(FSM::State::KeepLane).SetTime(8.0).Build();
   REQUIRE( car.TimeSinceLastManeuver() == Approx(1.0) );
+}
+
+
+TEST_CASE("Car::PossibleNextStates", "[car]")
+{
+  Car::SetPathPlannerConfig(&config);
+  Car car{Car::Builder()
+            .SetId(2)
+            .SetState(FSM::State::KeepLane)
+            .SetTime(0.0)
+            .SetCoordinateS(67.0)
+            .SetCoordinateD(6.0)
+            .SetVelocityS(70.0)
+            .SetVelocityD(0.0)
+            .SetAccelerationS(0.01)
+            .SetAccelerationD(0.02)
+          .Build()};
+
+  REQUIRE( car.PossibleNextStates() == std::vector{ FSM::State::KeepLane } );
+  REQUIRE( Car::Builder(car).SetTime(3.5).Build().PossibleNextStates() == std::vector{ FSM::State::KeepLane } );
+  REQUIRE( Car::Builder(car).SetTime(4.0).Build().PossibleNextStates() ==
+           std::vector{ FSM::State::KeepLane, FSM::State::LaneChangeLeft, FSM::State::LaneChangeRight } );
+  car = Car::Builder(car).SetTime(5.0).Build();
+  REQUIRE( car.PossibleNextStates() ==
+           std::vector{ FSM::State::KeepLane, FSM::State::LaneChangeLeft, FSM::State::LaneChangeRight } );
+
+
+  car = Car::Builder(car).SetState(FSM::State::LaneChangeLeft).SetTime(6.0).Build();
+  REQUIRE( car.PossibleNextStates() == std::vector{ FSM::State::LaneChangeLeft } );
+  REQUIRE( Car::Builder(car).SetTime(7.5).Build().PossibleNextStates() == std::vector{ FSM::State::LaneChangeLeft } );
+
+  car = Car::Builder(car).SetTime(8.0).SetState(FSM::State::LaneChangeLeft).SetCoordinateD(2.0).Build();
+  REQUIRE( car.PossibleNextStates() == std::vector{ FSM::State::LaneChangeLeft } );
+  REQUIRE( Car::Builder(car).SetTime(11.0).Build().PossibleNextStates() ==
+           std::vector{ FSM::State::KeepLane, FSM::State::LaneChangeLeft, });
+
+  car = Car::Builder(car).SetState(FSM::State::KeepLane).SetTime(12.0).Build();
+  REQUIRE( car.PossibleNextStates() == std::vector{ FSM::State::KeepLane, } );
+  REQUIRE( Car::Builder(car).SetTime(16.0).Build().PossibleNextStates() ==
+           std::vector{ FSM::State::KeepLane, FSM::State::LaneChangeRight, } );
+
+  car = Car::Builder()
+              .SetId(2)
+              .SetState(FSM::State::KeepLane)
+              .SetTime(0.0)
+              .SetCoordinateS(67.0)
+              .SetCoordinateD(6.0)
+              .SetVelocityS(70.0)
+              .SetVelocityD(0.0)
+              .SetAccelerationS(0.01)
+              .SetAccelerationD(0.02)
+              .Build();
+
+  car = Car::Builder(car).SetState(FSM::State::LaneChangeRight).SetTime(6.0).Build();
+  REQUIRE( car.PossibleNextStates() == std::vector{ FSM::State::LaneChangeRight } );
+  REQUIRE( Car::Builder(car).SetTime(7.5).Build().PossibleNextStates() == std::vector{ FSM::State::LaneChangeRight } );
+
+  car = Car::Builder(car).SetTime(8.0).SetState(FSM::State::LaneChangeRight).SetCoordinateD(10.0).Build();
+  REQUIRE( car.PossibleNextStates() == std::vector{ FSM::State::LaneChangeRight } );
+  REQUIRE( Car::Builder(car).SetTime(11.0).Build().PossibleNextStates() ==
+           std::vector{ FSM::State::KeepLane, FSM::State::LaneChangeRight, });
+
+  car = Car::Builder(car).SetState(FSM::State::KeepLane).SetTime(12.0).Build();
+  REQUIRE( car.PossibleNextStates() == std::vector{ FSM::State::KeepLane, } );
+  REQUIRE( Car::Builder(car).SetTime(16.0).Build().PossibleNextStates() ==
+           std::vector{ FSM::State::KeepLane, FSM::State::LaneChangeLeft, } );
 }

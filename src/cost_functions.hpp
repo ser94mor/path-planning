@@ -37,20 +37,6 @@ LaneMaxSpeedCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::
 }
 
 
-inline double
-TimeSinceLastManeuverCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::map<Car, Car>& predictions)
-{
-  if (FSM::GetLaneChangingStates().count(planned_ego_car.State()) > 0 &&
-      FSM::GetLaneKeepingStates().count(cur_ego_car.State()) > 0) {
-    if (cur_ego_car.TimeSinceLastManeuver() < 4.0) {
-      return 1.0;
-    }
-  }
-
-  return 0.0;
-}
-
-
 inline double LaneCost(const Car& cur_ego_car, const Car& planned_ego_car, const std::map<Car, Car>& predictions)
 {
   if (planned_ego_car.IsInRightMostLane()) {
