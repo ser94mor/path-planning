@@ -44,7 +44,7 @@ $> make
 #### Run
 The path planner program can be run by doing the following from the project top directory.
 ```bash
-$> build/path_planning
+$> build/path_planning data/path_planner_config.json data/highway_map.csv 
 ```
 
 #### Demo
